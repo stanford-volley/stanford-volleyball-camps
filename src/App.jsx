@@ -8,11 +8,20 @@ const tabs = ["Dashboard", "Campers", "Teams", "Attendance", "Reports"];
 export default function App() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [campers, setCampers] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [selectedSession, setSelectedSession] = useState("");
+  const [attendance, setAttendance] = useState({});
   const [search, setSearch] = useState("");
+  const [teamFilter, setTeamFilter] = useState("");
 
   useEffect(() => {
     loadCampers();
+    loadSessions();
   }, []);
+
+  useEffect(() => {
+    if (selectedSession) loadAttendance(selectedSession);
+  }, [selectedSession]);
 
   async function loadCampers() {
     const { data, error } = await supabase
@@ -22,6 +31,78 @@ export default function App() {
 
     if (error) return alert(error.message);
     setCampers(data || []);
+  }
+
+  async function loadSessions() {
+    const { data, error } = await supabase
+      .from("attendance_sessions")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) return alert(error.message);
+
+    setSessions(data || []);
+    if (data?.length && !selectedSession) {
+      setSelectedSession(data[0].id);
+    }
+  }
+
+  async function loadAttendance(sessionId) {
+    const { data, error } = await supabase
+      .from("attendance")
+      .select("*")
+      .eq("session_id", sessionId);
+
+    if (error) return alert(error.message);
+
+    const map = {};
+    data.forEach((row) => {
+      map[row.camper_id] = row.status;
+    });
+
+    setAttendance(map);
+  }
+
+  async function createSession() {
+    const name = prompt("Session name? Example: Day 1 AM");
+    if (!name) return;
+
+    const sessionDate = prompt("Date? Example: 2025-07-10");
+    const sessionTime = prompt("Time? Example: Morning / Afternoon / Evening");
+
+    const { error } = await supabase.from("attendance_sessions").insert({
+      name,
+      session_date: sessionDate || null,
+      session_time: sessionTime || null,
+    });
+
+    if (error) return alert(error.message);
+
+    await loadSessions();
+  }
+
+  async function markAttendance(camperId, status) {
+    if (!selectedSession) {
+      alert("Create or select a session first.");
+      return;
+    }
+
+    const { error } = await supabase.from("attendance").upsert(
+      {
+        camper_id: camperId,
+        session_id: selectedSession,
+        status,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "camper_id,session_id" }
+    );
+
+    if (error) return alert(error.message);
+
+    setAttendance((prev) => ({
+      ...prev,
+      [camperId]: status,
+    }));
   }
 
   async function importExcel(e) {
@@ -98,6 +179,16 @@ export default function App() {
     return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
   }, [campers]);
 
+  const attendanceCampers = useMemo(() => {
+    return campers.filter((c) => {
+      return !teamFilter || c.main_team === teamFilter;
+    });
+  }, [campers, teamFilter]);
+
+  const presentCount = Object.values(attendance).filter((v) => v === "Present").length;
+  const absentCount = Object.values(attendance).filter((v) => v === "Absent").length;
+  const lateCount = Object.values(attendance).filter((v) => v === "Late").length;
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -122,18 +213,12 @@ export default function App() {
         {activeTab === "Dashboard" && (
           <>
             <section className="stats">
-              <div>
-                <span>Total Campers</span>
-                <strong>{campers.length}</strong>
-              </div>
-              <div>
-                <span>Teams</span>
-                <strong>{teams.length}</strong>
-              </div>
-              <div>
-                <span>Showing</span>
-                <strong>{filteredCampers.length}</strong>
-              </div>
+              <div><span>Total Campers</span><strong>{campers.length}</strong></div>
+              <div><span>Teams</span><strong>{teams.length}</strong></div>
+              <div><span>Sessions</span><strong>{sessions.length}</strong></div>
+              <div><span>Present</span><strong>{presentCount}</strong></div>
+              <div><span>Absent</span><strong>{absentCount}</strong></div>
+              <div><span>Late</span><strong>{lateCount}</strong></div>
             </section>
 
             <section className="panel">
@@ -161,9 +246,7 @@ export default function App() {
             <section className="camper-grid">
               {filteredCampers.map((c) => (
                 <div className="camper-card" key={c.id}>
-                  <h3>
-                    {c.first_name} {c.last_name}
-                  </h3>
+                  <h3>{c.first_name} {c.last_name}</h3>
                   <p><strong>Team:</strong> {c.main_team || "—"}</p>
                   <p><strong>Position:</strong> {c.primary_position || "—"}</p>
                   <p><strong>Grade:</strong> {c.grade || "—"} | <strong>Age:</strong> {c.age || "—"}</p>
@@ -195,10 +278,72 @@ export default function App() {
         )}
 
         {activeTab === "Attendance" && (
-          <section className="panel">
-            <h2>Attendance</h2>
-            <p>Next step: we’ll add sessions and one-tap Present / Absent / Late.</p>
-          </section>
+          <>
+            <section className="panel attendance-controls">
+              <h2>Attendance</h2>
+
+              <button className="primary-button" onClick={createSession}>
+                + Create Session
+              </button>
+
+              <select
+                value={selectedSession}
+                onChange={(e) => setSelectedSession(e.target.value)}
+              >
+                <option value="">Select Session</option>
+                {sessions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} {s.session_date ? `— ${s.session_date}` : ""}
+                  </option>
+                ))}
+              </select>
+
+              <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
+                <option value="">All Teams</option>
+                {teams.map(([team]) => (
+                  <option key={team} value={team}>{team}</option>
+                ))}
+              </select>
+            </section>
+
+            <section className="stats">
+              <div><span>Present</span><strong>{presentCount}</strong></div>
+              <div><span>Absent</span><strong>{absentCount}</strong></div>
+              <div><span>Late</span><strong>{lateCount}</strong></div>
+            </section>
+
+            <section className="attendance-list">
+              {attendanceCampers.map((c) => (
+                <div className="attendance-row" key={c.id}>
+                  <div>
+                    <h3>{c.first_name} {c.last_name}</h3>
+                    <p>{c.main_team || "—"} | {c.primary_position || "—"} | Grade {c.grade || "—"}</p>
+                  </div>
+
+                  <div className="attendance-buttons">
+                    <button
+                      className={attendance[c.id] === "Present" ? "present active" : "present"}
+                      onClick={() => markAttendance(c.id, "Present")}
+                    >
+                      Present
+                    </button>
+                    <button
+                      className={attendance[c.id] === "Absent" ? "absent active" : "absent"}
+                      onClick={() => markAttendance(c.id, "Absent")}
+                    >
+                      Absent
+                    </button>
+                    <button
+                      className={attendance[c.id] === "Late" ? "late active" : "late"}
+                      onClick={() => markAttendance(c.id, "Late")}
+                    >
+                      Late
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </section>
+          </>
         )}
 
         {activeTab === "Reports" && (
