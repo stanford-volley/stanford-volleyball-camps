@@ -5,10 +5,48 @@ body {
   color: #222;
 }
 
-.app {
-  max-width: 1200px;
-  margin: 0 auto;
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 230px;
+  background: #111;
+  color: white;
   padding: 20px;
+  box-sizing: border-box;
+}
+
+.sidebar h2 {
+  margin-top: 0;
+  margin-bottom: 24px;
+}
+
+.sidebar button {
+  display: block;
+  width: 100%;
+  background: transparent;
+  color: white;
+  border: 0;
+  text-align: left;
+  padding: 13px;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+
+.sidebar button:hover,
+.sidebar .nav-active {
+  background: #8c1515;
+}
+
+.main {
+  flex: 1;
+  max-width: 1300px;
+  padding: 24px;
+  box-sizing: border-box;
 }
 
 .hero {
@@ -30,14 +68,15 @@ body {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
   margin-bottom: 18px;
 }
 
 .stats div,
 .panel,
-.camper-card {
+.camper-card,
+.team-card {
   background: white;
   border-radius: 16px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
@@ -74,17 +113,20 @@ input {
   font-size: 15px;
 }
 
-.camper-grid {
+.camper-grid,
+.team-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 14px;
 }
 
-.camper-card {
+.camper-card,
+.team-card {
   padding: 16px;
 }
 
-.camper-card h3 {
+.camper-card h3,
+.team-card h3 {
   margin-top: 0;
   color: #8c1515;
 }
@@ -93,15 +135,28 @@ input {
   margin: 7px 0;
 }
 
-@media (max-width: 900px) {
-  .camper-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.team-card ul {
+  padding-left: 18px;
+  max-height: 280px;
+  overflow: auto;
 }
 
-@media (max-width: 600px) {
-  .stats,
-  .camper-grid {
+.team-card li {
+  margin-bottom: 6px;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
+
+  .camper-grid,
+  .team-grid,
+  .stats {
     grid-template-columns: 1fr;
   }
 }
