@@ -54,8 +54,17 @@ export default function TeamDetails({ team, roster, attendance, onBack }) {
       margin: { left: 40, right: 40 },
     });
 
-    doc.save(`${team}-roster.pdf`);
-  }
+const pdfBlob = doc.output("blob");
+const pdfUrl = URL.createObjectURL(pdfBlob);
+
+const link = document.createElement("a");
+link.href = pdfUrl;
+link.download = `${team}-roster.pdf`;
+document.body.appendChild(link);
+link.click();
+document.body.removeChild(link);
+
+URL.revokeObjectURL(pdfUrl);  }
   return (
     <>
       <section className="panel">
@@ -64,7 +73,7 @@ export default function TeamDetails({ team, roster, attendance, onBack }) {
         </button>
 
         <button className="primary-button" onClick={downloadRosterPDF}>
-          Download Team Roster PDF
+DOWNLOAD PDF TEST
         </button>
 
         <h1>{team}</h1>
