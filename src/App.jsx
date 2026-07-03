@@ -241,6 +241,27 @@ const notMarkedCount = reportCampers.filter(
 function editCamper(camper) {
   setSelectedCamper(camper);
 }
+  async function saveCamper() {
+  const { error } = await supabase
+    .from("campers")
+    .update({
+      main_team: selectedCamper.main_team,
+      primary_position: selectedCamper.primary_position,
+      friend_group: selectedCamper.friend_group,
+      notes: selectedCamper.notes || "",
+    })
+    .eq("id", selectedCamper.id);
+
+  if (error) return alert(error.message);
+
+  setCampers((prev) =>
+    prev.map((c) =>
+      c.id === selectedCamper.id ? selectedCamper : c
+    )
+  );
+
+  setSelectedCamper(null);
+}
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -577,11 +598,19 @@ function editCamper(camper) {
 
         <label>Notes</label>
 
-        <textarea rows="5" />
-
-        <button className="primary-button">
-          Save Camper
-        </button>
+<textarea
+  rows="5"
+  value={selectedCamper.notes || ""}
+  onChange={(e) =>
+    setSelectedCamper({
+      ...selectedCamper,
+      notes: e.target.value,
+    })
+  }
+/>
+        <button className="primary-button" onClick={saveCamper}>
+  Save Camper
+</button>
 
       </div>
 
