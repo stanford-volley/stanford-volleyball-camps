@@ -319,22 +319,7 @@ notes: selectedCamper.notes || "",
 {activeTab === "Teams" && (
 <Teams teams={teams} attendance={attendance} />
 )}
-        <section className="team-grid">
-            {teams.map(([team, roster]) => (
-              <div className="team-card" key={team}>
-                <h3>{team}</h3>
-                <p>{roster.length} campers</p>
-                <ul>
-                  {roster.map((c) => (
-                    <li key={c.id}>
-                      {c.first_name} {c.last_name} — {c.primary_position || "—"}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </section>
-        )}
+        
 
         {activeTab === "Attendance" && (
           <>
