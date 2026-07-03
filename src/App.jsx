@@ -327,7 +327,7 @@ notes: selectedCamper.notes || "",
               
 
 {activeTab === "Teams" && (
-<Teams teams={teams} attendance={attendance} />
+<Teams teams={teams} attendance={attendance} editCamper={editCamper} />
 )}
         
 
