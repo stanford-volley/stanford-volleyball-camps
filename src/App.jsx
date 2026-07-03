@@ -56,12 +56,13 @@ export default function App() {
     if (error) return alert(error.message);
 
     const map = {};
-    data.forEach((row) => {
-      map[row.camper_id] = row.status;
-    });
-
-    setAttendance(map);
-  }
+data.forEach((row) => {
+  map[row.camper_id] = {
+    status: row.status,
+    notes: row.notes || "",
+  };
+});
+setAttendance(map);  }
 
   async function createSession() {
     const name = prompt("Session name? Example: Day 1 AM");
