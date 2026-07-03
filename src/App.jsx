@@ -317,8 +317,7 @@ notes: selectedCamper.notes || "",
               
 
 {activeTab === "Teams" && (
-  <Teams teams={teams} />
-)}          <section className="team-grid">
+<Teams teams={teams} attendance={attendance} />)}          <section className="team-grid">
             {teams.map(([team, roster]) => (
               <div className="team-card" key={team}>
                 <h3>{team}</h3>
