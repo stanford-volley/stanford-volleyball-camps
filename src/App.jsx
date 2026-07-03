@@ -14,7 +14,8 @@ export default function App() {
   const [attendance, setAttendance] = useState({});
   const [search, setSearch] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
-
+  const [teamFilter, setTeamFilter] = useState("");
+  
   useEffect(() => {
     loadCampers();
     loadSessions();
@@ -214,10 +215,16 @@ async function updateAttendanceNotes(camperId, notes) {
   }, [campers]);
 
   const attendanceCampers = useMemo(() => {
-    return campers.filter((c) => {
-      return !teamFilter || c.main_team === teamFilter;
-    });
-  }, [campers, teamFilter]);
+  return campers.filter((c) => {
+    const matchesTeam = !teamFilter || c.main_team === teamFilter;
+    const matchesStatus =
+      !statusFilter ||
+      (statusFilter === "Not Marked" && !attendance[c.id]) ||
+      attendance[c.id]?.status === statusFilter;
+
+    return matchesTeam && matchesStatus;
+  });
+}, [campers, teamFilter, statusFilter, attendance]);
 
   const reportCampers = attendanceCampers;
 
@@ -408,6 +415,16 @@ notes: selectedCamper.notes || "",
                   <option key={team} value={team}>{team}</option>
                 ))}
               </select>
+              <select
+  value={statusFilter}
+  onChange={(e) => setStatusFilter(e.target.value)}
+>
+  <option value="">All Statuses</option>
+  <option value="Present">Present</option>
+  <option value="Absent">Absent</option>
+  <option value="Late">Late</option>
+  <option value="Not Marked">Not Marked</option>
+</select>
             </section>
 
             <section className="stats">
