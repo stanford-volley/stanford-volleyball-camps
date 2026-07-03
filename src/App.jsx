@@ -155,7 +155,17 @@ async function updateAttendanceNotes(camperId, notes) {
     const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
     const cleaned = rows
-      .filter((r) => r["First Name"] && r["Last Name"])
+.filter((r) => {
+  const first = String(r["First Name"] || "").trim();
+  const last = String(r["Last Name"] || "").trim();
+
+  return (
+    first &&
+    last &&
+    first.toLowerCase() !== "first name" &&
+    last.toLowerCase() !== "last name"
+  );
+})
       .map((r) => ({
         main_team: String(r["Main Team"] || "").trim(),
         add_setters_team: String(r["Add Setters Team"] || "").trim(),
