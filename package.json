@@ -9,15 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "latest",
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
+    "jspdf": "latest",
+    "jspdf-autotable": "latest",
+    "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "@supabase/supabase-js": "latest",
-    "xlsx": "latest",
-    "lucide-react": "latest",
-    "jspdf": "latest",
-"jspdf-autotable": "latest",
+    "vite": "latest",
+    "xlsx": "latest"
   },
   "devDependencies": {}
 }
