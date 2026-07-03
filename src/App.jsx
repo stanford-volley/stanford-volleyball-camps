@@ -314,9 +314,9 @@ notes: selectedCamper.notes || "",
   <thead>
     <tr>
       <th>Name</th>
+      <th>Team</th>
       <th>Camp</th>
       <th>Gym</th>
-      <th>Team</th>
       <th>Position</th>
       <th>Friend Group</th>
       <th>Attendance</th>
