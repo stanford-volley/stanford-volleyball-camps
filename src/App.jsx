@@ -581,6 +581,7 @@ notes: selectedCamper.notes || "",
     </option>
   ))}
 </select>
+        
         <label>Gym</label>
 
 <input
