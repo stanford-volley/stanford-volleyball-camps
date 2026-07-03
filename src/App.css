@@ -384,3 +384,16 @@ input {
 .campers-table tr:hover {
   background: #f8f8f8;
 }
+.small-button {
+  background: #8c1515;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.small-button:hover {
+  opacity: 0.9;
+}
