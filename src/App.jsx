@@ -15,7 +15,7 @@ export default function App() {
   const [attendance, setAttendance] = useState({});
   const [search, setSearch] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
-  const [teamFilter, setTeamFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   
   useEffect(() => {
     loadCampers();
@@ -313,63 +313,7 @@ notes: selectedCamper.notes || "",
     editCamper={editCamper}
   />
 )}
-              />
-            </section>
-
-            <section className="panel">
-
-<table className="campers-table">
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Team</th>
-      <th>Camp</th>
-      <th>Gym</th>
-      <th>Position</th>
-      <th>Friend Group</th>
-      <th>Attendance</th>
-<th>Notes</th>
-<th>Actions</th>
-    </tr>
-  </thead>
-
-  <tbody>
-    {filteredCampers.map((c) => (
-      <tr key={c.id}>
-        <td>
-          {c.first_name} {c.last_name}
-        </td>
-
-        <td>{c.main_team}</td>
-
-        <td>{c.camp}</td>
-
-        <td>{c.gym || "-"}</td>
-
-        <td>{c.primary_position}</td>
-
-        <td>{c.friend_group}</td>
-
-        <td>{attendance[c.id]?.status || "-"}</td>
-
-<td>{attendance[c.id]?.notes || ""}</td>
-
-<td>
-  <button
-    className="small-button"
-    onClick={() => editCamper(c)}
-  >
-    Edit
-  </button>
-</td>
-      </tr>
-    ))}
-  </tbody>
-</table>
-
-</section>
-          </>
-        )}
+              
 
         {activeTab === "Teams" && (
           <section className="team-grid">
@@ -439,10 +383,10 @@ notes: selectedCamper.notes || "",
                 <div className="attendance-row" key={c.id}>
                   <div>
                     <h3>{c.first_name} {c.last_name}</h3>
-                    <p>
+                    
 <p>
   Team: {c.main_team || "—"} | Gym: {c.gym || "—"} | Position: {c.primary_position || "—"}
-</p></p>
+</p>
                   </div>
 
                   <div className="attendance-buttons">
