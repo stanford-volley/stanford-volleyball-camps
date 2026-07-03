@@ -281,19 +281,42 @@ const notMarkedCount = reportCampers.filter(
               />
             </section>
 
-            <section className="camper-grid">
-              {filteredCampers.map((c) => (
-                <div className="camper-card" key={c.id}>
-                  <h3>{c.first_name} {c.last_name}</h3>
-                  <p><strong>Team:</strong> {c.main_team || "—"}</p>
-                  <p><strong>Position:</strong> {c.primary_position || "—"}</p>
-                  <p><strong>Grade:</strong> {c.grade || "—"} | <strong>Age:</strong> {c.age || "—"}</p>
-                  <p><strong>Club:</strong> {c.club_team || "—"}</p>
-                  <p><strong>Friend Group:</strong> {c.friend_group || "—"}</p>
-                  <p><strong>Camp:</strong> {c.camp || "—"}</p>
-                </div>
-              ))}
-            </section>
+            <section className="panel">
+
+<table className="campers-table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Team</th>
+      <th>Position</th>
+      <th>Camp</th>
+      <th>Friend Group</th>
+      <th>Attendance</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {filteredCampers.map((c) => (
+      <tr key={c.id}>
+        <td>
+          {c.first_name} {c.last_name}
+        </td>
+
+        <td>{c.main_team}</td>
+
+        <td>{c.primary_position}</td>
+
+        <td>{c.camp}</td>
+
+        <td>{c.friend_group}</td>
+
+        <td>{attendance[c.id]?.status || "-"}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+</section>
           </>
         )}
 
