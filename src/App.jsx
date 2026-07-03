@@ -236,10 +236,10 @@ const lateCount = reportCampers.filter(
 const notMarkedCount = reportCampers.filter(
   (c) => !attendance[c.id]
 ).length;
-  function editCamper(camper) {
-  alert(
-    `Editing ${camper.first_name} ${camper.last_name}\n\nThis will become the camper profile in the next step.`
-  );
+  const [selectedCamper, setSelectedCamper] = useState(null);
+
+function editCamper(camper) {
+  setSelectedCamper(camper);
 }
   return (
     <div className="app-shell">
@@ -521,6 +521,72 @@ const notMarkedCount = reportCampers.filter(
       </div>
     </section>
   </>
+)}
+        {selectedCamper && (
+  <div className="drawer-overlay">
+    <div className="drawer">
+
+      <button
+        className="close-button"
+        onClick={() => setSelectedCamper(null)}
+      >
+        ✕
+      </button>
+
+      <h2>
+        {selectedCamper.first_name} {selectedCamper.last_name}
+      </h2>
+
+      <div className="drawer-section">
+
+        <label>Team</label>
+
+        <input
+          value={selectedCamper.main_team || ""}
+          onChange={(e) =>
+            setSelectedCamper({
+              ...selectedCamper,
+              main_team: e.target.value,
+            })
+          }
+        />
+
+        <label>Primary Position</label>
+
+        <input
+          value={selectedCamper.primary_position || ""}
+          onChange={(e) =>
+            setSelectedCamper({
+              ...selectedCamper,
+              primary_position: e.target.value,
+            })
+          }
+        />
+
+        <label>Friend Group</label>
+
+        <input
+          value={selectedCamper.friend_group || ""}
+          onChange={(e) =>
+            setSelectedCamper({
+              ...selectedCamper,
+              friend_group: e.target.value,
+            })
+          }
+        />
+
+        <label>Notes</label>
+
+        <textarea rows="5" />
+
+        <button className="primary-button">
+          Save Camper
+        </button>
+
+      </div>
+
+    </div>
+  </div>
 )}
       </main>
     </div>
