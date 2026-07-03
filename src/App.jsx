@@ -111,6 +111,32 @@ setAttendance(map);  }
     },
   }));
 }
+async function updateAttendanceNotes(camperId, notes) {
+  if (!selectedSession) return alert("Create or select a session first.");
+
+  const status = attendance[camperId]?.status || "Present";
+
+  const { error } = await supabase.from("attendance").upsert(
+    {
+      camper_id: camperId,
+      session_id: selectedSession,
+      status,
+      notes,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "camper_id,session_id" }
+  );
+
+  if (error) return alert(error.message);
+
+  setAttendance((prev) => ({
+    ...prev,
+    [camperId]: {
+      status,
+      notes,
+    },
+  }));
+}  
 
   async function importExcel(e) {
     const file = e.target.files[0];
@@ -192,10 +218,23 @@ setAttendance(map);  }
     });
   }, [campers, teamFilter]);
 
-  const presentCount = Object.values(attendance).filter((v) => v === "Present").length;
-  const absentCount = Object.values(attendance).filter((v) => v === "Absent").length;
-  const lateCount = Object.values(attendance).filter((v) => v === "Late").length;
+  const reportCampers = attendanceCampers;
 
+const presentCount = reportCampers.filter(
+  (c) => attendance[c.id]?.status === "Present"
+).length;
+
+const absentCount = reportCampers.filter(
+  (c) => attendance[c.id]?.status === "Absent"
+).length;
+
+const lateCount = reportCampers.filter(
+  (c) => attendance[c.id]?.status === "Late"
+).length;
+
+const notMarkedCount = reportCampers.filter(
+  (c) => !attendance[c.id]
+).length;
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -329,24 +368,30 @@ setAttendance(map);  }
 
                   <div className="attendance-buttons">
                     <button
-                      className={attendance[c.id] === "Present" ? "present active" : "present"}
+                      className={attendance[c.id]?.status === "Present" ? "present active" : "present"}
                       onClick={() => markAttendance(c.id, "Present")}
                     >
                       Present
                     </button>
                     <button
-                      className={attendance[c.id] === "Absent" ? "absent active" : "absent"}
+                      className={attendance[c.id]?.status === "Absent" ? "absent active" : "absent"}
                       onClick={() => markAttendance(c.id, "Absent")}
                     >
                       Absent
                     </button>
                     <button
-                      className={attendance[c.id] === "Late" ? "late active" : "late"}
+                      className={attendance[c.id]?.status === "Late" ? "late active" : "late"}
                       onClick={() => markAttendance(c.id, "Late")}
                     >
                       Late
                     </button>
                   </div>
+                  <textarea
+  className="attendance-notes"
+  placeholder="Notes: arriving late, leaving early, pickup info..."
+  value={attendance[c.id]?.notes || ""}
+  onChange={(e) => updateAttendanceNotes(c.id, e.target.value)}
+/>
                 </div>
               ))}
             </section>
@@ -435,7 +480,7 @@ setAttendance(map);  }
             <strong>{c.first_name} {c.last_name}</strong>
             <span>{c.main_team || "—"}</span>
             <span>{c.primary_position || "—"}</span>
-            <span>{attendance[c.id] || "Not Marked"}</span>
+            <span>{attendance[c.id]?.status || "Not Marked"}</span>
           </div>
         ))}
       </div>
