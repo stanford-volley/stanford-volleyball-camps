@@ -15,7 +15,9 @@
     "react-dom": "latest",
     "@supabase/supabase-js": "latest",
     "xlsx": "latest",
-    "lucide-react": "latest"
+    "lucide-react": "latest",
+    "jspdf": "latest",
+"jspdf-autotable": "latest",
   },
   "devDependencies": {}
 }
