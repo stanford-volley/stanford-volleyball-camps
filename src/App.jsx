@@ -236,6 +236,11 @@ const lateCount = reportCampers.filter(
 const notMarkedCount = reportCampers.filter(
   (c) => !attendance[c.id]
 ).length;
+  function editCamper(camper) {
+  alert(
+    `Editing ${camper.first_name} ${camper.last_name}\n\nThis will become the camper profile in the next step.`
+  );
+}
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -292,6 +297,8 @@ const notMarkedCount = reportCampers.filter(
       <th>Camp</th>
       <th>Friend Group</th>
       <th>Attendance</th>
+<th>Notes</th>
+<th>Actions</th>
     </tr>
   </thead>
 
@@ -311,6 +318,17 @@ const notMarkedCount = reportCampers.filter(
         <td>{c.friend_group}</td>
 
         <td>{attendance[c.id]?.status || "-"}</td>
+
+<td>{attendance[c.id]?.notes || ""}</td>
+
+<td>
+  <button
+    className="small-button"
+    onClick={() => editCamper(c)}
+  >
+    Edit
+  </button>
+</td>
       </tr>
     ))}
   </tbody>
