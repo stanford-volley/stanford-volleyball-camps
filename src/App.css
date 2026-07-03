@@ -364,3 +364,23 @@ input {
     padding: 4px 6px;
   }
 }
+.campers-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.campers-table th {
+  background: #8c1515;
+  color: white;
+  padding: 12px;
+  text-align: left;
+}
+
+.campers-table td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.campers-table tr:hover {
+  background: #f8f8f8;
+}
