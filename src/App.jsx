@@ -1,3 +1,4 @@
+import Campers from "./pages/Campers";
 import Dashboard from "./pages/Dashboard";
 import React, { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
@@ -304,14 +305,14 @@ notes: selectedCamper.notes || "",
 )}
 
         {activeTab === "Campers" && (
-          <>
-            <section className="panel">
-              <h2>Find Campers</h2>
-              <input
-                className="search"
-                placeholder="Search by name, team, position, age, grade, club, friend group..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+  <Campers
+    search={search}
+    setSearch={setSearch}
+    filteredCampers={filteredCampers}
+    attendance={attendance}
+    editCamper={editCamper}
+  />
+)}
               />
             </section>
 
