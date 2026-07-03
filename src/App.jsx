@@ -248,7 +248,8 @@ function editCamper(camper) {
       main_team: selectedCamper.main_team,
       primary_position: selectedCamper.primary_position,
       friend_group: selectedCamper.friend_group,
-      notes: selectedCamper.notes || "",
+      gym: selectedCamper.gym || "",
+notes: selectedCamper.notes || "",
     })
     .eq("id", selectedCamper.id);
 
@@ -313,9 +314,10 @@ function editCamper(camper) {
   <thead>
     <tr>
       <th>Name</th>
+      <th>Camp</th>
+      <th>Gym</th>
       <th>Team</th>
       <th>Position</th>
-      <th>Camp</th>
       <th>Friend Group</th>
       <th>Attendance</th>
 <th>Notes</th>
@@ -332,9 +334,11 @@ function editCamper(camper) {
 
         <td>{c.main_team}</td>
 
-        <td>{c.primary_position}</td>
-
         <td>{c.camp}</td>
+
+        <td>{c.gym || "-"}</td>
+
+        <td>{c.primary_position}</td>
 
         <td>{c.friend_group}</td>
 
@@ -562,16 +566,32 @@ function editCamper(camper) {
 
         <label>Team</label>
 
-        <input
-          value={selectedCamper.main_team || ""}
-          onChange={(e) =>
-            setSelectedCamper({
-              ...selectedCamper,
-              main_team: e.target.value,
-            })
-          }
-        />
+        <select
+  value={selectedCamper.main_team || ""}
+  onChange={(e) =>
+    setSelectedCamper({
+      ...selectedCamper,
+      main_team: e.target.value,
+    })
+  }
+>
+  {teams.map(([team]) => (
+    <option key={team} value={team}>
+      {team}
+    </option>
+  ))}
+</select>
+        <label>Gym</label>
 
+<input
+  value={selectedCamper.gym || ""}
+  onChange={(e) =>
+    setSelectedCamper({
+      ...selectedCamper,
+      gym: e.target.value,
+    })
+  }
+/>
         <label>Primary Position</label>
 
         <input
