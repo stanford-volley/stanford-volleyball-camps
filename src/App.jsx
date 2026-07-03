@@ -1,3 +1,4 @@
+import Dashboard from "./pages/Dashboard";
 import React, { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
@@ -257,25 +258,16 @@ const notMarkedCount = reportCampers.filter(
         </header>
 
         {activeTab === "Dashboard" && (
-          <>
-            <section className="stats">
-              <div><span>Total Campers</span><strong>{campers.length}</strong></div>
-              <div><span>Teams</span><strong>{teams.length}</strong></div>
-              <div><span>Sessions</span><strong>{sessions.length}</strong></div>
-              <div><span>Present</span><strong>{presentCount}</strong></div>
-              <div><span>Absent</span><strong>{absentCount}</strong></div>
-              <div><span>Late</span><strong>{lateCount}</strong></div>
-            </section>
-
-            <section className="panel">
-              <h2>Import Camp Spreadsheet</h2>
-              <p>
-                Upload your Excel file. This reads the <strong>Assign to Teams</strong> tab.
-              </p>
-              <input type="file" accept=".xlsx,.xls" onChange={importExcel} />
-            </section>
-          </>
-        )}
+  <Dashboard
+    campers={campers}
+    teams={teams}
+    sessions={sessions}
+    presentCount={presentCount}
+    absentCount={absentCount}
+    lateCount={lateCount}
+    importExcel={importExcel}
+  />
+)}
 
         {activeTab === "Campers" && (
           <>
