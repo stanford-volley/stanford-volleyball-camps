@@ -15,6 +15,9 @@ export default function TeamDetails({
         <button className="primary-button" onClick={onBack}>
           ← Back to Teams
         </button>
+        <button className="primary-button" onClick={() => window.print()}>
+  Print Team Roster
+</button>
 
         <h1>{team}</h1>
 
