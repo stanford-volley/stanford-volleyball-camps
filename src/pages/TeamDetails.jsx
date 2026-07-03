@@ -1,13 +1,61 @@
-export default function TeamDetails({
-  team,
-  roster,
-  attendance,
-  onBack,
-}) {
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+export default function TeamDetails({ team, roster, attendance, onBack }) {
   const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
   const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
   const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
   const notMarked = roster.filter((c) => !attendance[c.id]).length;
+
+  function downloadRosterPDF() {
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
+
+    doc.setFontSize(18);
+    doc.text("Stanford Volleyball Camps", 40, 40);
+
+    doc.setFontSize(14);
+    doc.text(`Team: ${team}`, 40, 65);
+
+    doc.setFontSize(10);
+    doc.text(`Campers: ${roster.length}`, 40, 88);
+    doc.text(`Present: ${present}`, 140, 88);
+    doc.text(`Absent: ${absent}`, 230, 88);
+    doc.text(`Late: ${late}`, 320, 88);
+    doc.text(`Not Marked: ${notMarked}`, 390, 88);
+
+    autoTable(doc, {
+      startY: 110,
+      head: [["Name", "Position", "Gym", "Friend Group", "Attendance", "Notes"]],
+      body: roster.map((c) => [
+        `${c.first_name || ""} ${c.last_name || ""}`,
+        c.primary_position || "",
+        c.gym || "",
+        c.friend_group || "",
+        attendance[c.id]?.status || "Not Marked",
+        attendance[c.id]?.notes || "",
+      ]),
+      styles: {
+        fontSize: 8,
+        cellPadding: 4,
+        overflow: "linebreak",
+      },
+      headStyles: {
+        fillColor: [140, 21, 21],
+        textColor: 255,
+      },
+      columnStyles: {
+        0: { cellWidth: 115 },
+        1: { cellWidth: 60 },
+        2: { cellWidth: 60 },
+        3: { cellWidth: 75 },
+        4: { cellWidth: 75 },
+        5: { cellWidth: 130 },
+      },
+      margin: { left: 40, right: 40 },
+    });
+
+    doc.save(`${team}-roster.pdf`);
+  }
 
   return (
     <>
@@ -15,9 +63,10 @@ export default function TeamDetails({
         <button className="primary-button" onClick={onBack}>
           ← Back to Teams
         </button>
-        <button className="primary-button" onClick={() => window.print()}>
-  Print Team Roster
-</button>
+
+        <button className="primary-button" onClick={downloadRosterPDF}>
+          Download Team Roster PDF
+        </button>
 
         <h1>{team}</h1>
 
