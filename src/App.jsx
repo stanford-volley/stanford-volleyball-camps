@@ -422,8 +422,9 @@ notes: selectedCamper.notes || "",
                   <div>
                     <h3>{c.first_name} {c.last_name}</h3>
                     <p>
-  {c.main_team || "—"} | {c.primary_position || "—"} | {c.main_team || "—"}
-</p>
+<p>
+  Team: {c.main_team || "—"} | Gym: {c.gym || "—"} | Position: {c.primary_position || "—"}
+</p></p>
                   </div>
 
                   <div className="attendance-buttons">
@@ -520,7 +521,7 @@ notes: selectedCamper.notes || "",
       <h2>Absent Campers</h2>
       <div className="report-list">
         {attendanceCampers
-          .filter((c) => attendance[c.id] === "Absent")
+.filter((c) => attendance[c.id]?.status === "Absent")
           .map((c) => (
             <div className="report-row" key={c.id}>
               <strong>{c.first_name} {c.last_name}</strong>
