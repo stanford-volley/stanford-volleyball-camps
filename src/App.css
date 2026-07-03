@@ -441,3 +441,23 @@ input {
   font-size: 22px;
   cursor: pointer;
 }
+.team-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.team-card h2 {
+  margin: 0;
+  color: #8c1515;
+}
+
+.team-card hr {
+  width: 100%;
+  border: none;
+  border-top: 1px solid #ddd;
+}
+
+.team-card .primary-button {
+  margin-top: auto;
+}
