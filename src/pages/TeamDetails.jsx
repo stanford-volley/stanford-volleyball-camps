@@ -56,7 +56,6 @@ export default function TeamDetails({ team, roster, attendance, onBack }) {
 
     doc.save(`${team}-roster.pdf`);
   }
-
   return (
     <>
       <section className="panel">
