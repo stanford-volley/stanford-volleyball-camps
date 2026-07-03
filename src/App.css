@@ -461,3 +461,61 @@ input {
 .team-card .primary-button {
   margin-top: auto;
 }
+@media print {
+  @page {
+    size: landscape;
+    margin: 0.25in;
+  }
+
+  .sidebar,
+  .hero,
+  .primary-button,
+  .panel:first-of-type {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+    font-size: 10px;
+  }
+
+  .main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  .panel {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .campers-table {
+    font-size: 9px;
+    width: 100%;
+  }
+
+  .campers-table th,
+  .campers-table td {
+    padding: 3px 5px;
+    line-height: 1.1;
+  }
+
+  .campers-table th:nth-child(4),
+  .campers-table td:nth-child(4),
+  .campers-table th:nth-child(6),
+  .campers-table td:nth-child(6) {
+    display: none;
+  }
+
+  h1,
+  h2 {
+    margin: 0 0 6px;
+    font-size: 16px;
+  }
+
+  .stats {
+    display: none !important;
+  }
+}
