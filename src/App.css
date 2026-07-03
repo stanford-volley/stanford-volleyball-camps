@@ -247,3 +247,49 @@ input {
     flex-wrap: wrap;
   }
 }
+.report-list {
+  display: grid;
+  gap: 8px;
+}
+
+.report-row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 1fr;
+  gap: 10px;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  align-items: center;
+}
+
+.report-row strong {
+  color: #8c1515;
+}
+
+@media print {
+  .sidebar,
+  .hero,
+  .attendance-controls,
+  button {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+  }
+
+  .main {
+    padding: 0;
+  }
+
+  .panel,
+  .stats div {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+}
+
+@media (max-width: 700px) {
+  .report-row {
+    grid-template-columns: 1fr;
+  }
+}
