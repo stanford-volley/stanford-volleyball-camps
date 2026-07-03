@@ -397,3 +397,47 @@ input {
 .small-button:hover {
   opacity: 0.9;
 }
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 999;
+}
+
+.drawer {
+  width: 450px;
+  background: white;
+  height: 100%;
+  padding: 24px;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.drawer h2 {
+  margin-top: 0;
+  color: #8c1515;
+}
+
+.drawer-section {
+  display: grid;
+  gap: 10px;
+}
+
+.drawer-section label {
+  font-weight: bold;
+}
+
+.drawer textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.close-button {
+  float: right;
+  border: none;
+  background: none;
+  font-size: 22px;
+  cursor: pointer;
+}
