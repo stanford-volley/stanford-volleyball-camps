@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export default function TeamDetails({ team, roster, attendance, onBack }) {
+export default function TeamDetails({ team, roster, attendance, onBack, editCamper }) {
   const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
   const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
   const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
@@ -113,9 +113,9 @@ DOWNLOAD PDF TEST
                 <td>{attendance[c.id]?.status || "Not Marked"}</td>
 <td>{attendance[c.id]?.notes || ""}</td>
 <td>
-  <button className="small-button">
-    Edit
-  </button>
+ <button className="small-button" onClick={() => editCamper(c)}>
+  Edit
+</button>
 </td>
               </tr>
             ))}
