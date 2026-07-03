@@ -363,7 +363,9 @@ const notMarkedCount = reportCampers.filter(
                 <div className="attendance-row" key={c.id}>
                   <div>
                     <h3>{c.first_name} {c.last_name}</h3>
-                    <p>{c.main_team || "—"} | {c.primary_position || "—"} | Grade {c.grade || "—"}</p>
+                    <p>
+  {c.main_team || "—"} | {c.primary_position || "—"} | {c.main_team || "—"}
+</p>
                   </div>
 
                   <div className="attendance-buttons">
