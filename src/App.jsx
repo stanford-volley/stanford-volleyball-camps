@@ -388,7 +388,7 @@ const notMarkedCount = reportCampers.filter(
                   </div>
                   <textarea
   className="attendance-notes"
-  placeholder="Notes: arriving late, leaving early, pickup info..."
+  placeholder="Notes: "
   value={attendance[c.id]?.notes || ""}
   onChange={(e) => updateAttendanceNotes(c.id, e.target.value)}
 />
