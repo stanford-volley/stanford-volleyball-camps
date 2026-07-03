@@ -83,28 +83,34 @@ setAttendance(map);  }
   }
 
   async function markAttendance(camperId, status) {
-    if (!selectedSession) {
-      alert("Create or select a session first.");
-      return;
-    }
-
-    const { error } = await supabase.from("attendance").upsert(
-      {
-        camper_id: camperId,
-        session_id: selectedSession,
-        status,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "camper_id,session_id" }
-    );
-
-    if (error) return alert(error.message);
-
-    setAttendance((prev) => ({
-      ...prev,
-      [camperId]: status,
-    }));
+  if (!selectedSession) {
+    alert("Create or select a session first.");
+    return;
   }
+
+  const existingNotes = attendance[camperId]?.notes || "";
+
+  const { error } = await supabase.from("attendance").upsert(
+    {
+      camper_id: camperId,
+      session_id: selectedSession,
+      status,
+      notes: existingNotes,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "camper_id,session_id" }
+  );
+
+  if (error) return alert(error.message);
+
+  setAttendance((prev) => ({
+    ...prev,
+    [camperId]: {
+      status,
+      notes: existingNotes,
+    },
+  }));
+}
 
   async function importExcel(e) {
     const file = e.target.files[0];
