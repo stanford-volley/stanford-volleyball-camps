@@ -98,7 +98,8 @@ DOWNLOAD PDF TEST
               <th>Gym</th>
               <th>Friend Group</th>
               <th>Attendance</th>
-              <th>Notes</th>
+<th>Notes</th>
+<th>Actions</th>          
             </tr>
           </thead>
 
@@ -110,7 +111,12 @@ DOWNLOAD PDF TEST
                 <td>{c.gym || "-"}</td>
                 <td>{c.friend_group || "-"}</td>
                 <td>{attendance[c.id]?.status || "Not Marked"}</td>
-                <td>{attendance[c.id]?.notes || ""}</td>
+<td>{attendance[c.id]?.notes || ""}</td>
+<td>
+  <button className="small-button">
+    Edit
+  </button>
+</td>
               </tr>
             ))}
           </tbody>
