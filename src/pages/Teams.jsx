@@ -1,13 +1,29 @@
 import { useMemo, useState } from "react";
+import TeamDetails from "./TeamDetails";
 
-export default function Teams({ teams }) {
+export default function Teams({ teams, attendance }) {
   const [search, setSearch] = useState("");
+  const [selectedTeam, setSelectedTeam] = useState(null);
 
   const filteredTeams = useMemo(() => {
     return teams.filter(([team]) =>
       team.toLowerCase().includes(search.toLowerCase())
     );
   }, [teams, search]);
+
+  if (selectedTeam) {
+    const roster =
+      teams.find(([team]) => team === selectedTeam)?.[1] || [];
+
+    return (
+      <TeamDetails
+        team={selectedTeam}
+        roster={roster}
+        attendance={attendance}
+        onBack={() => setSelectedTeam(null)}
+      />
+    );
+  }
 
   return (
     <>
@@ -31,8 +47,6 @@ export default function Teams({ teams }) {
               <strong>{roster.length}</strong> Campers
             </p>
 
-            <hr />
-
             <p>
               <strong>Gym:</strong> —
             </p>
@@ -43,11 +57,7 @@ export default function Teams({ teams }) {
 
             <button
               className="primary-button"
-              onClick={() =>
-                alert(
-                  `${team}\n\nThis page is coming next.\n\n${roster.length} campers`
-                )
-              }
+              onClick={() => setSelectedTeam(team)}
             >
               Open Team
             </button>
