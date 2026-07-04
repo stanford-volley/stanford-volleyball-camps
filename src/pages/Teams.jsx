@@ -7,6 +7,7 @@ export default function Teams({
   teamDetails,
   editCamper,
   moveCamperTeam,
+  saveTeamInfo,
 }) {
   const [search, setSearch] = useState("");
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -29,6 +30,7 @@ export default function Teams({
         teamInfo={teamDetails[selectedTeam]}
         editCamper={editCamper}
         moveCamperTeam={moveCamperTeam}
+        saveTeamInfo={saveTeamInfo}
         onBack={() => setSelectedTeam(null)}
       />
     );
