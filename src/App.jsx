@@ -165,55 +165,95 @@ export default function App() {
   }
 
   async function importExcel(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer);
-    const sheet = workbook.Sheets["Assign to Teams"];
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer);
 
-    if (!sheet) return alert("Could not find tab named Assign to Teams.");
+  const camperSheet = workbook.Sheets["Assign to Teams"];
+  const teamSheet = workbook.Sheets["Coach + Court Assignment"];
 
-    const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+  if (!camperSheet) return alert("Could not find tab named Assign to Teams.");
+  if (!teamSheet) return alert("Could not find tab named Coach + Court Assignment.");
 
-    const cleaned = rows
-      .filter((r) => {
-        const first = String(r["First Name"] || "").trim();
-        const last = String(r["Last Name"] || "").trim();
+  const camperRows = XLSX.utils.sheet_to_json(camperSheet, { defval: "" });
 
-        return (
-          first &&
-          last &&
-          first.toLowerCase() !== "first name" &&
-          last.toLowerCase() !== "last name"
-        );
-      })
-      .map((r) => ({
-        main_team: String(r["Main Team"] || "").trim(),
-        add_setters_team: String(r["Add Setters Team"] || "").trim(),
-        first_name: String(r["First Name"] || "").trim(),
-        last_name: String(r["Last Name"] || "").trim(),
-        primary_position: String(r["Primary Position"] || "").trim(),
-        secondary_position: String(r["Secondary Position"] || "").trim(),
-        age: String(r["Age"] || "").trim(),
-        grade: String(r["Grade in Fall"] || "").trim(),
-        club_team: String(r["Club Team"] || "").trim(),
-        camp: String(r["Camp"] || "").trim(),
-        friend_request: String(r["Friend Request"] || "").trim(),
-        friend_group: String(r["Friend Group"] || "").trim(),
-        tshirt: String(r["T-Shirt"] || "").trim(),
-        meal_add_on: String(r["Meal Add On"] || "").trim(),
-        pickup: String(r["Pickup?"] || "").trim(),
-        camper_rank: Number(r["CAMPER RANK"] || 0),
-      }));
+  const cleanedCampers = camperRows
+    .filter((r) => {
+      const first = String(r["First Name"] || "").trim();
+      const last = String(r["Last Name"] || "").trim();
 
-    const { error } = await supabase.from("campers").insert(cleaned);
+      return (
+        first &&
+        last &&
+        first.toLowerCase() !== "first name" &&
+        last.toLowerCase() !== "last name"
+      );
+    })
+    .map((r) => ({
+      main_team: String(r["Main Team"] || "").trim(),
+      add_setters_team: String(r["Add Setters Team"] || "").trim(),
+      first_name: String(r["First Name"] || "").trim(),
+      last_name: String(r["Last Name"] || "").trim(),
+      primary_position: String(r["Primary Position"] || "").trim(),
+      secondary_position: String(r["Secondary Position"] || "").trim(),
+      age: String(r["Age"] || "").trim(),
+      grade: String(r["Grade in Fall"] || "").trim(),
+      club_team: String(r["Club Team"] || "").trim(),
+      camp: String(r["Camp"] || "").trim(),
+      friend_request: String(r["Friend Request"] || "").trim(),
+      friend_group: String(r["Friend Group"] || "").trim(),
+      tshirt: String(r["T-Shirt"] || "").trim(),
+      meal_add_on: String(r["Meal Add On"] || "").trim(),
+      pickup: String(r["Pickup?"] || "").trim(),
+      camper_rank: Number(r["CAMPER RANK"] || 0),
+    }));
 
-    if (error) return alert(error.message);
+  const teamRows = XLSX.utils.sheet_to_json(teamSheet, { defval: "" });
 
-    alert(`Imported ${cleaned.length} campers.`);
-    loadCampers();
-  }
+  const cleanedTeams = teamRows
+    .filter((r) => {
+      const teamName = String(r["Team Name"] || "").trim();
+      return teamName && teamName.toLowerCase() !== "team name";
+    })
+    .map((r) => {
+      const court = String(r["Court"] || "").trim();
+      const gym = court ? court.replace(/\s*\d+$/, "").trim() : "";
+
+      return {
+        name: String(r["Team Name"] || "").trim(),
+        camp_id: String(r["Camp ID"] || "").trim(),
+        coach_1: String(r["Coach 1"] || "").trim(),
+        coach_2: String(r["Coach 2"] || "").trim(),
+        coach_3: String(r["Coach 3"] || "").trim(),
+        coach: String(r["Coach 1"] || "").trim(),
+        assistant_coach: String(r["Coach 2"] || "").trim(),
+        court,
+        gym,
+        rank: Number(r["Rank"] || 0),
+      };
+    });
+
+  const { error: camperError } = await supabase
+    .from("campers")
+    .insert(cleanedCampers);
+
+  if (camperError) return alert(camperError.message);
+
+  const { error: teamError } = await supabase
+    .from("teams")
+    .upsert(cleanedTeams, { onConflict: "name" });
+
+  if (teamError) return alert(teamError.message);
+
+  alert(
+    `Imported ${cleanedCampers.length} campers and ${cleanedTeams.length} team assignments.`
+  );
+
+  loadCampers();
+  loadTeamDetails();
+}
 
   const filteredCampers = useMemo(() => {
     const q = search.toLowerCase();
