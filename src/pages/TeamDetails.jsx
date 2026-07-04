@@ -1,3 +1,4 @@
+import { useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -6,10 +7,20 @@ export default function TeamDetails({
   roster,
   attendance,
   teams,
+  teamInfo,
   onBack,
   editCamper,
   moveCamperTeam,
+  saveTeamInfo,
 }) {
+  const [info, setInfo] = useState({
+    coach: teamInfo?.coach || "",
+    assistant_coach: teamInfo?.assistant_coach || "",
+    gym: teamInfo?.gym || "",
+    court: teamInfo?.court || "",
+    notes: teamInfo?.notes || "",
+  });
+
   const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
   const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
   const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
@@ -25,14 +36,19 @@ export default function TeamDetails({
     doc.text(`Team: ${team}`, 40, 65);
 
     doc.setFontSize(10);
-    doc.text(`Campers: ${roster.length}`, 40, 88);
-    doc.text(`Present: ${present}`, 140, 88);
-    doc.text(`Absent: ${absent}`, 230, 88);
-    doc.text(`Late: ${late}`, 320, 88);
-    doc.text(`Not Marked: ${notMarked}`, 390, 88);
+    doc.text(`Coach: ${info.coach || "—"}`, 40, 88);
+    doc.text(`Assistant: ${info.assistant_coach || "—"}`, 200, 88);
+    doc.text(`Gym: ${info.gym || "—"}`, 390, 88);
+    doc.text(`Court: ${info.court || "—"}`, 480, 88);
+
+    doc.text(`Campers: ${roster.length}`, 40, 108);
+    doc.text(`Present: ${present}`, 140, 108);
+    doc.text(`Absent: ${absent}`, 230, 108);
+    doc.text(`Late: ${late}`, 320, 108);
+    doc.text(`Not Marked: ${notMarked}`, 390, 108);
 
     autoTable(doc, {
-      startY: 110,
+      startY: 130,
       head: [["Name", "Position", "Gym", "Friend Group", "Attendance", "Notes"]],
       body: roster.map((c) => [
         `${c.first_name || ""} ${c.last_name || ""}`,
@@ -70,6 +86,48 @@ export default function TeamDetails({
           <div><span>Late</span><strong>{late}</strong></div>
           <div><span>Not Marked</span><strong>{notMarked}</strong></div>
         </section>
+      </section>
+
+      <section className="panel team-edit-panel">
+        <h2>Team Assignments</h2>
+
+        <label>Coach</label>
+        <input
+          value={info.coach}
+          onChange={(e) => setInfo({ ...info, coach: e.target.value })}
+        />
+
+        <label>Assistant Coach</label>
+        <input
+          value={info.assistant_coach}
+          onChange={(e) => setInfo({ ...info, assistant_coach: e.target.value })}
+        />
+
+        <label>Gym</label>
+        <input
+          value={info.gym}
+          onChange={(e) => setInfo({ ...info, gym: e.target.value })}
+        />
+
+        <label>Court</label>
+        <input
+          value={info.court}
+          onChange={(e) => setInfo({ ...info, court: e.target.value })}
+        />
+
+        <label>Team Notes</label>
+        <textarea
+          rows="3"
+          value={info.notes}
+          onChange={(e) => setInfo({ ...info, notes: e.target.value })}
+        />
+
+        <button
+          className="primary-button"
+          onClick={() => saveTeamInfo(team, info)}
+        >
+          Save Team Assignments
+        </button>
       </section>
 
       <section className="panel">
@@ -111,10 +169,7 @@ export default function TeamDetails({
                   </select>
                 </td>
                 <td>
-                  <button
-                    className="small-button"
-                    onClick={() => editCamper(c)}
-                  >
+                  <button className="small-button" onClick={() => editCamper(c)}>
                     Edit
                   </button>
                 </td>
