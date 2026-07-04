@@ -1,7 +1,13 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export default function TeamDetails({ team, roster, attendance, onBack, editCamper }) {
+export default function TeamDetails({
+  team,
+  roster,
+  attendance,
+  onBack,
+  editCamper,
+}) {
   const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
   const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
   const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
@@ -34,15 +40,8 @@ export default function TeamDetails({ team, roster, attendance, onBack, editCamp
         attendance[c.id]?.status || "Not Marked",
         attendance[c.id]?.notes || "",
       ]),
-      styles: {
-        fontSize: 8,
-        cellPadding: 4,
-        overflow: "linebreak",
-      },
-      headStyles: {
-        fillColor: [140, 21, 21],
-        textColor: 255,
-      },
+      styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak" },
+      headStyles: { fillColor: [140, 21, 21], textColor: 255 },
       columnStyles: {
         0: { cellWidth: 115 },
         1: { cellWidth: 60 },
@@ -54,17 +53,9 @@ export default function TeamDetails({ team, roster, attendance, onBack, editCamp
       margin: { left: 40, right: 40 },
     });
 
-const pdfBlob = doc.output("blob");
-const pdfUrl = URL.createObjectURL(pdfBlob);
+    doc.save(`${team}-roster.pdf`);
+  }
 
-const link = document.createElement("a");
-link.href = pdfUrl;
-link.download = `${team}-roster.pdf`;
-document.body.appendChild(link);
-link.click();
-document.body.removeChild(link);
-
-URL.revokeObjectURL(pdfUrl);  }
   return (
     <>
       <section className="panel">
@@ -73,7 +64,7 @@ URL.revokeObjectURL(pdfUrl);  }
         </button>
 
         <button className="primary-button" onClick={downloadRosterPDF}>
-DOWNLOAD PDF TEST
+          Download Team Roster PDF
         </button>
 
         <h1>{team}</h1>
@@ -98,8 +89,8 @@ DOWNLOAD PDF TEST
               <th>Gym</th>
               <th>Friend Group</th>
               <th>Attendance</th>
-<th>Notes</th>
-<th>Actions</th>          
+              <th>Notes</th>
+              <th>Actions</th>
             </tr>
           </thead>
 
@@ -111,12 +102,15 @@ DOWNLOAD PDF TEST
                 <td>{c.gym || "-"}</td>
                 <td>{c.friend_group || "-"}</td>
                 <td>{attendance[c.id]?.status || "Not Marked"}</td>
-<td>{attendance[c.id]?.notes || ""}</td>
-<td>
- <button className="small-button" onClick={() => editCamper(c)}>
-  Edit
-</button>
-</td>
+                <td>{attendance[c.id]?.notes || ""}</td>
+                <td>
+                  <button
+                    className="small-button"
+                    onClick={() => editCamper(c)}
+                  >
+                    Edit
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
