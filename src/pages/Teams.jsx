@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import TeamDetails from "./TeamDetails";
 
-export default function Teams({ teams, attendance, editCamper }) {
+export default function Teams({ teams, attendance, editCamper, moveCamperTeam }) {
   const [search, setSearch] = useState("");
   const [selectedTeam, setSelectedTeam] = useState(null);
 
@@ -21,6 +21,7 @@ export default function Teams({ teams, attendance, editCamper }) {
   roster={roster}
   attendance={attendance}
   editCamper={editCamper}
+  moveCamperTeam={moveCamperTeam}
   onBack={() => setSelectedTeam(null)}
 />
     );
