@@ -191,7 +191,34 @@ async function updateAttendanceNotes(camperId, notes) {
     )
   );
 }
-  
+  async function saveTeamInfo(teamName, info) {
+  const { error } = await supabase
+    .from("teams")
+    .upsert(
+      {
+        name: teamName,
+        coach: info.coach || "",
+        assistant_coach: info.assistant_coach || "",
+        gym: info.gym || "",
+        court: info.court || "",
+        notes: info.notes || "",
+      },
+      { onConflict: "name" }
+    );
+
+  if (error) return alert(error.message);
+
+  setTeamDetails((prev) => ({
+    ...prev,
+    [teamName]: {
+      ...(prev[teamName] || {}),
+      name: teamName,
+      ...info,
+    },
+  }));
+
+  alert("Team assignments saved.");
+}
   return (
     first &&
     last &&
@@ -381,6 +408,7 @@ setSelectedCamper(null);
   teamDetails={teamDetails}
   editCamper={editCamper}
   moveCamperTeam={moveCamperTeam}
+  saveTeamInfo={saveTeamInfo}
 />)}
         
 
