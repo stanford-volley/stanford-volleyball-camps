@@ -4,6 +4,7 @@ import TeamDetails from "./TeamDetails";
 export default function Teams({
   teams,
   attendance,
+  teamDetails,
   editCamper,
   moveCamperTeam,
 }) {
@@ -25,6 +26,7 @@ export default function Teams({
         roster={roster}
         attendance={attendance}
         teams={teams}
+        teamInfo={teamDetails[selectedTeam]}
         editCamper={editCamper}
         moveCamperTeam={moveCamperTeam}
         onBack={() => setSelectedTeam(null)}
@@ -46,30 +48,38 @@ export default function Teams({
       </section>
 
       <section className="team-grid">
-        {filteredTeams.map(([team, roster]) => (
-          <div className="team-card" key={team}>
-            <h2>{team}</h2>
+        {filteredTeams.map(([team, roster]) => {
+          const info = teamDetails[team] || {};
 
-            <p>
-              <strong>{roster.length}</strong> Campers
-            </p>
+          return (
+            <div className="team-card" key={team}>
+              <h2>{team}</h2>
 
-            <p>
-              <strong>Gym:</strong> —
-            </p>
+              <p>
+                <strong>{roster.length}</strong> Campers
+              </p>
 
-            <p>
-              <strong>Coach:</strong> —
-            </p>
+              <p>
+                <strong>Gym:</strong> {info.gym || "—"}
+              </p>
 
-            <button
-              className="primary-button"
-              onClick={() => setSelectedTeam(team)}
-            >
-              Open Team
-            </button>
-          </div>
-        ))}
+              <p>
+                <strong>Court:</strong> {info.court || "—"}
+              </p>
+
+              <p>
+                <strong>Coach:</strong> {info.coach || "—"}
+              </p>
+
+              <button
+                className="primary-button"
+                onClick={() => setSelectedTeam(team)}
+              >
+                Open Team
+              </button>
+            </div>
+          );
+        })}
       </section>
     </>
   );
