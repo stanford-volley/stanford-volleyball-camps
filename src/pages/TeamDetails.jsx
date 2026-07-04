@@ -5,8 +5,10 @@ export default function TeamDetails({
   team,
   roster,
   attendance,
+  teams,
   onBack,
   editCamper,
+  moveCamperTeam,
 }) {
   const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
   const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
@@ -42,14 +44,6 @@ export default function TeamDetails({
       ]),
       styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak" },
       headStyles: { fillColor: [140, 21, 21], textColor: 255 },
-      columnStyles: {
-        0: { cellWidth: 115 },
-        1: { cellWidth: 60 },
-        2: { cellWidth: 60 },
-        3: { cellWidth: 75 },
-        4: { cellWidth: 75 },
-        5: { cellWidth: 130 },
-      },
       margin: { left: 40, right: 40 },
     });
 
@@ -90,6 +84,7 @@ export default function TeamDetails({
               <th>Friend Group</th>
               <th>Attendance</th>
               <th>Notes</th>
+              <th>Move Team</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -103,6 +98,18 @@ export default function TeamDetails({
                 <td>{c.friend_group || "-"}</td>
                 <td>{attendance[c.id]?.status || "Not Marked"}</td>
                 <td>{attendance[c.id]?.notes || ""}</td>
+                <td>
+                  <select
+                    value={c.main_team || ""}
+                    onChange={(e) => moveCamperTeam(c, e.target.value)}
+                  >
+                    {teams.map(([teamName]) => (
+                      <option key={teamName} value={teamName}>
+                        {teamName}
+                      </option>
+                    ))}
+                  </select>
+                </td>
                 <td>
                   <button
                     className="small-button"
