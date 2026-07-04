@@ -159,6 +159,23 @@ async function updateAttendanceNotes(camperId, notes) {
   const first = String(r["First Name"] || "").trim();
   const last = String(r["Last Name"] || "").trim();
 
+  async function moveCamperTeam(camper, newTeam) {
+  const { error } = await supabase
+    .from("campers")
+    .update({ main_team: newTeam })
+    .eq("id", camper.id);
+
+  if (error) return alert(error.message);
+
+  setCampers((prev) =>
+    prev.map((c) =>
+      c.id === camper.id
+        ? { ...c, main_team: newTeam }
+        : c
+    )
+  );
+}
+  
   return (
     first &&
     last &&
@@ -328,8 +345,12 @@ setSelectedCamper(null);
               
 
 {activeTab === "Teams" && (
-<Teams teams={teams} attendance={attendance} editCamper={editCamper} />
-)}
+<Teams
+  teams={teams}
+  attendance={attendance}
+  editCamper={editCamper}
+  moveCamperTeam={moveCamperTeam}
+/>)}
         
 
         {activeTab === "Attendance" && (
