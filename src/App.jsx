@@ -300,6 +300,20 @@ notes: selectedCamper.notes || "",
 setSelectedCamper(null);
     
 }
+  async function moveCamperTeam(camper, newTeam) {
+  const { error } = await supabase
+    .from("campers")
+    .update({ main_team: newTeam })
+    .eq("id", camper.id);
+
+  if (error) return alert(error.message);
+
+  setCampers((prev) =>
+    prev.map((c) =>
+      c.id === camper.id ? { ...c, main_team: newTeam } : c
+    )
+  );
+}
   return (
     <div className="app-shell">
       <aside className="sidebar">
