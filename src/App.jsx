@@ -235,24 +235,45 @@ export default function App() {
       };
     });
 
-  const { error: camperError } = await supabase
-    .from("campers")
-    .insert(cleanedCampers);
+  // Clear previous camp
 
-  if (camperError) return alert(camperError.message);
+await supabase.from("attendance").delete().neq("id", 0);
+await supabase.from("attendance_sessions").delete().neq("id", 0);
+await supabase.from("campers").delete().neq("id", 0);
+await supabase.from("teams").delete().neq("id", 0);
 
-  const { error: teamError } = await supabase
-    .from("teams")
-    .upsert(cleanedTeams, { onConflict: "name" });
+// Import campers
 
-  if (teamError) return alert(teamError.message);
+// Clear previous camp data before importing new file
+await supabase.from("attendance").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+await supabase.from("attendance_sessions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+await supabase.from("campers").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+await supabase.from("teams").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
-  alert(
-    `Imported ${cleanedCampers.length} campers and ${cleanedTeams.length} team assignments.`
-  );
+// Import fresh campers
+const { error: camperError } = await supabase
+  .from("campers")
+  .insert(cleanedCampers);
 
-  loadCampers();
-  loadTeamDetails();
+if (camperError) return alert(camperError.message);
+
+// Import fresh team assignments
+const { error: teamError } = await supabase
+  .from("teams")
+  .insert(cleanedTeams);
+
+if (teamError) return alert(teamError.message);
+
+alert(
+  `Imported ${cleanedCampers.length} campers and ${cleanedTeams.length} teams.`
+);
+
+await loadCampers();
+await loadTeamDetails();
+await loadSessions();
+
+setAttendance({});
+setSelectedSession("");
 }
 
   const filteredCampers = useMemo(() => {
