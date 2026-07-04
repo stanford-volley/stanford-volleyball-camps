@@ -16,17 +16,33 @@ export default function App() {
   const [attendance, setAttendance] = useState({});
   const [search, setSearch] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
+  const [teamDetails, setTeamDetails] = useState({});
   const [statusFilter, setStatusFilter] = useState("");
   
   useEffect(() => {
-    loadCampers();
-    loadSessions();
-  }, []);
+  loadCampers();
+  loadSessions();
+  loadTeamDetails();
+}, []);
 
   useEffect(() => {
     if (selectedSession) loadAttendance(selectedSession);
   }, [selectedSession]);
+  async function loadTeamDetails() {
+  const { data, error } = await supabase
+    .from("teams")
+    .select("*");
 
+  if (error) return alert(error.message);
+
+  const map = {};
+  data.forEach((team) => {
+    map[team.name] = team;
+  });
+
+  setTeamDetails(map);
+}
+  
   async function loadCampers() {
     const { data, error } = await supabase
       .from("campers")
@@ -362,6 +378,7 @@ setSelectedCamper(null);
 <Teams
   teams={teams}
   attendance={attendance}
+  teamDetails={teamDetails}
   editCamper={editCamper}
   moveCamperTeam={moveCamperTeam}
 />)}
