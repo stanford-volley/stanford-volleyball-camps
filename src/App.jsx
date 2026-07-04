@@ -274,13 +274,14 @@ notes: selectedCamper.notes || "",
 
   if (error) return alert(error.message);
 
-  setCampers((prev) =>
-    prev.map((c) =>
-      c.id === selectedCamper.id ? selectedCamper : c
-    )
-  );
+ setCampers((prev) =>
+  prev.map((c) =>
+    c.id === selectedCamper.id ? selectedCamper : c
+  )
+);
 
-  setSelectedCamper(null);
+setSelectedCamper(null);
+    
 }
   return (
     <div className="app-shell">
