@@ -1,7 +1,12 @@
 import { useMemo, useState } from "react";
 import TeamDetails from "./TeamDetails";
 
-export default function Teams({ teams, attendance, editCamper, moveCamperTeam }) {
+export default function Teams({
+  teams,
+  attendance,
+  editCamper,
+  moveCamperTeam,
+}) {
   const [search, setSearch] = useState("");
   const [selectedTeam, setSelectedTeam] = useState(null);
 
@@ -12,18 +17,18 @@ export default function Teams({ teams, attendance, editCamper, moveCamperTeam })
   }, [teams, search]);
 
   if (selectedTeam) {
-    const roster =
-      teams.find(([team]) => team === selectedTeam)?.[1] || [];
+    const roster = teams.find(([team]) => team === selectedTeam)?.[1] || [];
 
     return (
       <TeamDetails
-  team={selectedTeam}
-  roster={roster}
-  attendance={attendance}
-  editCamper={editCamper}
-  moveCamperTeam={moveCamperTeam}
-  onBack={() => setSelectedTeam(null)}
-/>
+        team={selectedTeam}
+        roster={roster}
+        attendance={attendance}
+        teams={teams}
+        editCamper={editCamper}
+        moveCamperTeam={moveCamperTeam}
+        onBack={() => setSelectedTeam(null)}
+      />
     );
   }
 
