@@ -18,31 +18,31 @@ export default function App() {
   const [teamFilter, setTeamFilter] = useState("");
   const [teamDetails, setTeamDetails] = useState({});
   const [statusFilter, setStatusFilter] = useState("");
-  
+  const [selectedCamper, setSelectedCamper] = useState(null);
+
   useEffect(() => {
-  loadCampers();
-  loadSessions();
-  loadTeamDetails();
-}, []);
+    loadCampers();
+    loadSessions();
+    loadTeamDetails();
+  }, []);
 
   useEffect(() => {
     if (selectedSession) loadAttendance(selectedSession);
   }, [selectedSession]);
+
   async function loadTeamDetails() {
-  const { data, error } = await supabase
-    .from("teams")
-    .select("*");
+    const { data, error } = await supabase.from("teams").select("*");
 
-  if (error) return alert(error.message);
+    if (error) return alert(error.message);
 
-  const map = {};
-  data.forEach((team) => {
-    map[team.name] = team;
-  });
+    const map = {};
+    data.forEach((team) => {
+      map[team.name] = team;
+    });
 
-  setTeamDetails(map);
-}
-  
+    setTeamDetails(map);
+  }
+
   async function loadCampers() {
     const { data, error } = await supabase
       .from("campers")
@@ -50,6 +50,7 @@ export default function App() {
       .order("last_name", { ascending: true });
 
     if (error) return alert(error.message);
+
     setCampers(data || []);
   }
 
@@ -62,6 +63,7 @@ export default function App() {
     if (error) return alert(error.message);
 
     setSessions(data || []);
+
     if (data?.length && !selectedSession) {
       setSelectedSession(data[0].id);
     }
@@ -76,13 +78,16 @@ export default function App() {
     if (error) return alert(error.message);
 
     const map = {};
-data.forEach((row) => {
-  map[row.camper_id] = {
-    status: row.status,
-    notes: row.notes || "",
-  };
-});
-setAttendance(map);  }
+
+    data.forEach((row) => {
+      map[row.camper_id] = {
+        status: row.status,
+        notes: row.notes || "",
+      };
+    });
+
+    setAttendance(map);
+  }
 
   async function createSession() {
     const name = prompt("Session name? Example: Day 1 AM");
@@ -103,60 +108,61 @@ setAttendance(map);  }
   }
 
   async function markAttendance(camperId, status) {
-  if (!selectedSession) {
-    alert("Create or select a session first.");
-    return;
+    if (!selectedSession) {
+      alert("Create or select a session first.");
+      return;
+    }
+
+    const existingNotes = attendance[camperId]?.notes || "";
+
+    const { error } = await supabase.from("attendance").upsert(
+      {
+        camper_id: camperId,
+        session_id: selectedSession,
+        status,
+        notes: existingNotes,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "camper_id,session_id" }
+    );
+
+    if (error) return alert(error.message);
+
+    setAttendance((prev) => ({
+      ...prev,
+      [camperId]: {
+        status,
+        notes: existingNotes,
+      },
+    }));
   }
 
-  const existingNotes = attendance[camperId]?.notes || "";
+  async function updateAttendanceNotes(camperId, notes) {
+    if (!selectedSession) return alert("Create or select a session first.");
 
-  const { error } = await supabase.from("attendance").upsert(
-    {
-      camper_id: camperId,
-      session_id: selectedSession,
-      status,
-      notes: existingNotes,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "camper_id,session_id" }
-  );
+    const status = attendance[camperId]?.status || "Present";
 
-  if (error) return alert(error.message);
+    const { error } = await supabase.from("attendance").upsert(
+      {
+        camper_id: camperId,
+        session_id: selectedSession,
+        status,
+        notes,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "camper_id,session_id" }
+    );
 
-  setAttendance((prev) => ({
-    ...prev,
-    [camperId]: {
-      status,
-      notes: existingNotes,
-    },
-  }));
-}
-async function updateAttendanceNotes(camperId, notes) {
-  if (!selectedSession) return alert("Create or select a session first.");
+    if (error) return alert(error.message);
 
-  const status = attendance[camperId]?.status || "Present";
-
-  const { error } = await supabase.from("attendance").upsert(
-    {
-      camper_id: camperId,
-      session_id: selectedSession,
-      status,
-      notes,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "camper_id,session_id" }
-  );
-
-  if (error) return alert(error.message);
-
-  setAttendance((prev) => ({
-    ...prev,
-    [camperId]: {
-      status,
-      notes,
-    },
-  }));
-}  
+    setAttendance((prev) => ({
+      ...prev,
+      [camperId]: {
+        status,
+        notes,
+      },
+    }));
+  }
 
   async function importExcel(e) {
     const file = e.target.files[0];
@@ -171,61 +177,17 @@ async function updateAttendanceNotes(camperId, notes) {
     const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
     const cleaned = rows
-.filter((r) => {
-  const first = String(r["First Name"] || "").trim();
-  const last = String(r["Last Name"] || "").trim();
+      .filter((r) => {
+        const first = String(r["First Name"] || "").trim();
+        const last = String(r["Last Name"] || "").trim();
 
-  async function moveCamperTeam(camper, newTeam) {
-  const { error } = await supabase
-    .from("campers")
-    .update({ main_team: newTeam })
-    .eq("id", camper.id);
-
-  if (error) return alert(error.message);
-
-  setCampers((prev) =>
-    prev.map((c) =>
-      c.id === camper.id
-        ? { ...c, main_team: newTeam }
-        : c
-    )
-  );
-}
-  async function saveTeamInfo(teamName, info) {
-  const { error } = await supabase
-    .from("teams")
-    .upsert(
-      {
-        name: teamName,
-        coach: info.coach || "",
-        assistant_coach: info.assistant_coach || "",
-        gym: info.gym || "",
-        court: info.court || "",
-        notes: info.notes || "",
-      },
-      { onConflict: "name" }
-    );
-
-  if (error) return alert(error.message);
-
-  setTeamDetails((prev) => ({
-    ...prev,
-    [teamName]: {
-      ...(prev[teamName] || {}),
-      name: teamName,
-      ...info,
-    },
-  }));
-
-  alert("Team assignments saved.");
-}
-  return (
-    first &&
-    last &&
-    first.toLowerCase() !== "first name" &&
-    last.toLowerCase() !== "last name"
-  );
-})
+        return (
+          first &&
+          last &&
+          first.toLowerCase() !== "first name" &&
+          last.toLowerCase() !== "last name"
+        );
+      })
       .map((r) => ({
         main_team: String(r["Main Team"] || "").trim(),
         add_setters_team: String(r["Add Setters Team"] || "").trim(),
@@ -287,80 +249,111 @@ async function updateAttendanceNotes(camperId, notes) {
   }, [campers]);
 
   const attendanceCampers = useMemo(() => {
-  return campers.filter((c) => {
-    const matchesTeam = !teamFilter || c.main_team === teamFilter;
-    const matchesStatus =
-      !statusFilter ||
-      (statusFilter === "Not Marked" && !attendance[c.id]) ||
-      attendance[c.id]?.status === statusFilter;
+    return campers.filter((c) => {
+      const matchesTeam = !teamFilter || c.main_team === teamFilter;
 
-    return matchesTeam && matchesStatus;
-  });
-}, [campers, teamFilter, statusFilter, attendance]);
+      const matchesStatus =
+        !statusFilter ||
+        (statusFilter === "Not Marked" && !attendance[c.id]) ||
+        attendance[c.id]?.status === statusFilter;
+
+      return matchesTeam && matchesStatus;
+    });
+  }, [campers, teamFilter, statusFilter, attendance]);
 
   const reportCampers = attendanceCampers;
 
-const presentCount = reportCampers.filter(
-  (c) => attendance[c.id]?.status === "Present"
-).length;
+  const presentCount = reportCampers.filter(
+    (c) => attendance[c.id]?.status === "Present"
+  ).length;
 
-const absentCount = reportCampers.filter(
-  (c) => attendance[c.id]?.status === "Absent"
-).length;
+  const absentCount = reportCampers.filter(
+    (c) => attendance[c.id]?.status === "Absent"
+  ).length;
 
-const lateCount = reportCampers.filter(
-  (c) => attendance[c.id]?.status === "Late"
-).length;
+  const lateCount = reportCampers.filter(
+    (c) => attendance[c.id]?.status === "Late"
+  ).length;
 
-const notMarkedCount = reportCampers.filter(
-  (c) => !attendance[c.id]
-).length;
-  const [selectedCamper, setSelectedCamper] = useState(null);
+  function editCamper(camper) {
+    setSelectedCamper(camper);
+  }
 
-function editCamper(camper) {
-  setSelectedCamper(camper);
-}
   async function saveCamper() {
-  const { error } = await supabase
-    .from("campers")
-    .update({
-      main_team: selectedCamper.main_team,
-      primary_position: selectedCamper.primary_position,
-      friend_group: selectedCamper.friend_group,
-      gym: selectedCamper.gym || "",
-notes: selectedCamper.notes || "",
-    })
-    .eq("id", selectedCamper.id);
+    const { error } = await supabase
+      .from("campers")
+      .update({
+        main_team: selectedCamper.main_team,
+        primary_position: selectedCamper.primary_position,
+        friend_group: selectedCamper.friend_group,
+        gym: selectedCamper.gym || "",
+        notes: selectedCamper.notes || "",
+      })
+      .eq("id", selectedCamper.id);
 
-  if (error) return alert(error.message);
+    if (error) return alert(error.message);
 
- setCampers((prev) =>
-  prev.map((c) =>
-    c.id === selectedCamper.id ? selectedCamper : c
-  )
-);
+    setCampers((prev) =>
+      prev.map((c) =>
+        c.id === selectedCamper.id
+          ? {
+              ...c,
+              ...selectedCamper,
+            }
+          : c
+      )
+    );
 
-setSelectedCamper(null);
-    
-}
+    setSelectedCamper(null);
+  }
+
   async function moveCamperTeam(camper, newTeam) {
-  const { error } = await supabase
-    .from("campers")
-    .update({ main_team: newTeam })
-    .eq("id", camper.id);
+    const { error } = await supabase
+      .from("campers")
+      .update({ main_team: newTeam })
+      .eq("id", camper.id);
 
-  if (error) return alert(error.message);
+    if (error) return alert(error.message);
 
-  setCampers((prev) =>
-    prev.map((c) =>
-      c.id === camper.id ? { ...c, main_team: newTeam } : c
-    )
-  );
-}
+    setCampers((prev) =>
+      prev.map((c) =>
+        c.id === camper.id ? { ...c, main_team: newTeam } : c
+      )
+    );
+  }
+
+  async function saveTeamInfo(teamName, info) {
+    const { error } = await supabase.from("teams").upsert(
+      {
+        name: teamName,
+        coach: info.coach || "",
+        assistant_coach: info.assistant_coach || "",
+        gym: info.gym || "",
+        court: info.court || "",
+        notes: info.notes || "",
+      },
+      { onConflict: "name" }
+    );
+
+    if (error) return alert(error.message);
+
+    setTeamDetails((prev) => ({
+      ...prev,
+      [teamName]: {
+        ...(prev[teamName] || {}),
+        name: teamName,
+        ...info,
+      },
+    }));
+
+    alert("Team assignments saved.");
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <h2>Stanford Camps</h2>
+
         {tabs.map((tab) => (
           <button
             key={tab}
@@ -379,38 +372,37 @@ setSelectedCamper(null);
         </header>
 
         {activeTab === "Dashboard" && (
-  <Dashboard
-    campers={campers}
-    teams={teams}
-    sessions={sessions}
-    presentCount={presentCount}
-    absentCount={absentCount}
-    lateCount={lateCount}
-    importExcel={importExcel}
-  />
-)}
+          <Dashboard
+            campers={campers}
+            teams={teams}
+            sessions={sessions}
+            presentCount={presentCount}
+            absentCount={absentCount}
+            lateCount={lateCount}
+            importExcel={importExcel}
+          />
+        )}
 
         {activeTab === "Campers" && (
-  <Campers
-    search={search}
-    setSearch={setSearch}
-    filteredCampers={filteredCampers}
-    attendance={attendance}
-    editCamper={editCamper}
-  />
-)}
-              
+          <Campers
+            search={search}
+            setSearch={setSearch}
+            filteredCampers={filteredCampers}
+            attendance={attendance}
+            editCamper={editCamper}
+          />
+        )}
 
-{activeTab === "Teams" && (
-<Teams
-  teams={teams}
-  attendance={attendance}
-  teamDetails={teamDetails}
-  editCamper={editCamper}
-  moveCamperTeam={moveCamperTeam}
-  saveTeamInfo={saveTeamInfo}
-/>)}
-        
+        {activeTab === "Teams" && (
+          <Teams
+            teams={teams}
+            attendance={attendance}
+            teamDetails={teamDetails}
+            editCamper={editCamper}
+            moveCamperTeam={moveCamperTeam}
+            saveTeamInfo={saveTeamInfo}
+          />
+        )}
 
         {activeTab === "Attendance" && (
           <>
@@ -426,6 +418,7 @@ setSelectedCamper(null);
                 onChange={(e) => setSelectedSession(e.target.value)}
               >
                 <option value="">Select Session</option>
+
                 {sessions.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name} {s.session_date ? `— ${s.session_date}` : ""}
@@ -433,67 +426,105 @@ setSelectedCamper(null);
                 ))}
               </select>
 
-              <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
+              <select
+                value={teamFilter}
+                onChange={(e) => setTeamFilter(e.target.value)}
+              >
                 <option value="">All Teams</option>
+
                 {teams.map(([team]) => (
-                  <option key={team} value={team}>{team}</option>
+                  <option key={team} value={team}>
+                    {team}
+                  </option>
                 ))}
               </select>
+
               <select
-  value={statusFilter}
-  onChange={(e) => setStatusFilter(e.target.value)}
->
-  <option value="">All Statuses</option>
-  <option value="Present">Present</option>
-  <option value="Absent">Absent</option>
-  <option value="Late">Late</option>
-  <option value="Not Marked">Not Marked</option>
-</select>
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="">All Statuses</option>
+                <option value="Present">Present</option>
+                <option value="Absent">Absent</option>
+                <option value="Late">Late</option>
+                <option value="Not Marked">Not Marked</option>
+              </select>
             </section>
 
             <section className="stats">
-              <div><span>Present</span><strong>{presentCount}</strong></div>
-              <div><span>Absent</span><strong>{absentCount}</strong></div>
-              <div><span>Late</span><strong>{lateCount}</strong></div>
+              <div>
+                <span>Present</span>
+                <strong>{presentCount}</strong>
+              </div>
+
+              <div>
+                <span>Absent</span>
+                <strong>{absentCount}</strong>
+              </div>
+
+              <div>
+                <span>Late</span>
+                <strong>{lateCount}</strong>
+              </div>
             </section>
 
             <section className="attendance-list">
               {attendanceCampers.map((c) => (
                 <div className="attendance-row" key={c.id}>
                   <div>
-                    <h3>{c.first_name} {c.last_name}</h3>
-                    
-<p>
-  Team: {c.main_team || "—"} | Gym: {c.gym || "—"} | Position: {c.primary_position || "—"}
-</p>
+                    <h3>
+                      {c.first_name} {c.last_name}
+                    </h3>
+
+                    <p>
+                      Team: {c.main_team || "—"} | Gym: {c.gym || "—"} |
+                      Position: {c.primary_position || "—"}
+                    </p>
                   </div>
 
                   <div className="attendance-buttons">
                     <button
-                      className={attendance[c.id]?.status === "Present" ? "present active" : "present"}
+                      className={
+                        attendance[c.id]?.status === "Present"
+                          ? "present active"
+                          : "present"
+                      }
                       onClick={() => markAttendance(c.id, "Present")}
                     >
                       Present
                     </button>
+
                     <button
-                      className={attendance[c.id]?.status === "Absent" ? "absent active" : "absent"}
+                      className={
+                        attendance[c.id]?.status === "Absent"
+                          ? "absent active"
+                          : "absent"
+                      }
                       onClick={() => markAttendance(c.id, "Absent")}
                     >
                       Absent
                     </button>
+
                     <button
-                      className={attendance[c.id]?.status === "Late" ? "late active" : "late"}
+                      className={
+                        attendance[c.id]?.status === "Late"
+                          ? "late active"
+                          : "late"
+                      }
                       onClick={() => markAttendance(c.id, "Late")}
                     >
                       Late
                     </button>
                   </div>
+
                   <textarea
-  className="attendance-notes"
-  placeholder="Notes: "
-  value={attendance[c.id]?.notes || ""}
-  onChange={(e) => updateAttendanceNotes(c.id, e.target.value)}
-/>
+                    className="attendance-notes"
+                    placeholder="Notes:"
+                    value={attendance[c.id]?.notes || ""}
+                    onChange={(e) =>
+                      updateAttendanceNotes(c.id, e.target.value)
+                    }
+                  />
                 </div>
               ))}
             </section>
@@ -501,185 +532,216 @@ setSelectedCamper(null);
         )}
 
         {activeTab === "Reports" && (
-  <>
-    <section className="panel attendance-controls">
-      <h2>Reports</h2>
+          <>
+            <section className="panel attendance-controls">
+              <h2>Reports</h2>
 
-      <select
-        value={selectedSession}
-        onChange={(e) => setSelectedSession(e.target.value)}
-      >
-        <option value="">Select Session</option>
-        {sessions.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.name} {s.session_date ? `— ${s.session_date}` : ""}
-          </option>
-        ))}
-      </select>
+              <select
+                value={selectedSession}
+                onChange={(e) => setSelectedSession(e.target.value)}
+              >
+                <option value="">Select Session</option>
 
-      <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
-        <option value="">All Teams</option>
-        {teams.map(([team]) => (
-          <option key={team} value={team}>{team}</option>
-        ))}
-      </select>
+                {sessions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} {s.session_date ? `— ${s.session_date}` : ""}
+                  </option>
+                ))}
+              </select>
 
-      <button className="primary-button" onClick={() => window.print()}>
-        Print Report
-      </button>
-    </section>
+              <select
+                value={teamFilter}
+                onChange={(e) => setTeamFilter(e.target.value)}
+              >
+                <option value="">All Teams</option>
 
-    <section className="stats">
-      <div><span>Total in View</span><strong>{attendanceCampers.length}</strong></div>
-      <div><span>Present</span><strong>{presentCount}</strong></div>
-      <div><span>Absent</span><strong>{absentCount}</strong></div>
-      <div><span>Late</span><strong>{lateCount}</strong></div>
-      <div>
-        <span>Not Marked</span>
-        <strong>
-          {attendanceCampers.filter((c) => !attendance[c.id]).length}
-        </strong>
-      </div>
-    </section>
+                {teams.map(([team]) => (
+                  <option key={team} value={team}>
+                    {team}
+                  </option>
+                ))}
+              </select>
 
-    <section className="panel">
-      <h2>Missing / Not Marked</h2>
-      <div className="report-list">
-        {attendanceCampers
-          .filter((c) => !attendance[c.id])
-          .map((c) => (
-            <div className="report-row" key={c.id}>
-              <strong>{c.first_name} {c.last_name}</strong>
-              <span>{c.main_team || "—"}</span>
-              <span>{c.primary_position || "—"}</span>
-              <span>Grade {c.grade || "—"}</span>
-            </div>
-          ))}
-      </div>
-    </section>
+              <button className="primary-button" onClick={() => window.print()}>
+                Print Report
+              </button>
+            </section>
 
-    <section className="panel">
-      <h2>Absent Campers</h2>
-      <div className="report-list">
-        {attendanceCampers
-.filter((c) => attendance[c.id]?.status === "Absent")
-          .map((c) => (
-            <div className="report-row" key={c.id}>
-              <strong>{c.first_name} {c.last_name}</strong>
-              <span>{c.main_team || "—"}</span>
-              <span>{c.primary_position || "—"}</span>
-              <span>Grade {c.grade || "—"}</span>
-            </div>
-          ))}
-      </div>
-    </section>
+            <section className="stats">
+              <div>
+                <span>Total in View</span>
+                <strong>{attendanceCampers.length}</strong>
+              </div>
 
-    <section className="panel">
-      <h2>Full Attendance Report</h2>
-      <div className="report-list">
-        {attendanceCampers.map((c) => (
-          <div className="report-row" key={c.id}>
-            <strong>{c.first_name} {c.last_name}</strong>
-            <span>{c.main_team || "—"}</span>
-            <span>{c.primary_position || "—"}</span>
-            <span>{attendance[c.id]?.status || "Not Marked"}</span>
-          </div>
-        ))}
-      </div>
-    </section>
-  </>
-)}
+              <div>
+                <span>Present</span>
+                <strong>{presentCount}</strong>
+              </div>
+
+              <div>
+                <span>Absent</span>
+                <strong>{absentCount}</strong>
+              </div>
+
+              <div>
+                <span>Late</span>
+                <strong>{lateCount}</strong>
+              </div>
+
+              <div>
+                <span>Not Marked</span>
+                <strong>
+                  {attendanceCampers.filter((c) => !attendance[c.id]).length}
+                </strong>
+              </div>
+            </section>
+
+            <section className="panel">
+              <h2>Missing / Not Marked</h2>
+
+              <div className="report-list">
+                {attendanceCampers
+                  .filter((c) => !attendance[c.id])
+                  .map((c) => (
+                    <div className="report-row" key={c.id}>
+                      <strong>
+                        {c.first_name} {c.last_name}
+                      </strong>
+                      <span>{c.main_team || "—"}</span>
+                      <span>{c.primary_position || "—"}</span>
+                      <span>Grade {c.grade || "—"}</span>
+                    </div>
+                  ))}
+              </div>
+            </section>
+
+            <section className="panel">
+              <h2>Absent Campers</h2>
+
+              <div className="report-list">
+                {attendanceCampers
+                  .filter((c) => attendance[c.id]?.status === "Absent")
+                  .map((c) => (
+                    <div className="report-row" key={c.id}>
+                      <strong>
+                        {c.first_name} {c.last_name}
+                      </strong>
+                      <span>{c.main_team || "—"}</span>
+                      <span>{c.primary_position || "—"}</span>
+                      <span>Grade {c.grade || "—"}</span>
+                    </div>
+                  ))}
+              </div>
+            </section>
+
+            <section className="panel">
+              <h2>Full Attendance Report</h2>
+
+              <div className="report-list">
+                {attendanceCampers.map((c) => (
+                  <div className="report-row" key={c.id}>
+                    <strong>
+                      {c.first_name} {c.last_name}
+                    </strong>
+                    <span>{c.main_team || "—"}</span>
+                    <span>{c.primary_position || "—"}</span>
+                    <span>{attendance[c.id]?.status || "Not Marked"}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+
         {selectedCamper && (
-  <div className="drawer-overlay">
-    <div className="drawer">
+          <div className="drawer-overlay">
+            <div className="drawer">
+              <button
+                className="close-button"
+                onClick={() => setSelectedCamper(null)}
+              >
+                ✕
+              </button>
 
-      <button
-        className="close-button"
-        onClick={() => setSelectedCamper(null)}
-      >
-        ✕
-      </button>
+              <h2>
+                {selectedCamper.first_name} {selectedCamper.last_name}
+              </h2>
 
-      <h2>
-        {selectedCamper.first_name} {selectedCamper.last_name}
-      </h2>
+              <div className="drawer-section">
+                <label>Team</label>
 
-      <div className="drawer-section">
+                <select
+                  value={selectedCamper.main_team || ""}
+                  onChange={(e) =>
+                    setSelectedCamper({
+                      ...selectedCamper,
+                      main_team: e.target.value,
+                    })
+                  }
+                >
+                  {teams.map(([team]) => (
+                    <option key={team} value={team}>
+                      {team}
+                    </option>
+                  ))}
+                </select>
 
-        <label>Team</label>
+                <label>Gym</label>
 
-        <select
-  value={selectedCamper.main_team || ""}
-  onChange={(e) =>
-    setSelectedCamper({
-      ...selectedCamper,
-      main_team: e.target.value,
-    })
-  }
->
-  {teams.map(([team]) => (
-    <option key={team} value={team}>
-      {team}
-    </option>
-  ))}
-</select>
-        
-        <label>Gym</label>
+                <input
+                  value={selectedCamper.gym || ""}
+                  onChange={(e) =>
+                    setSelectedCamper({
+                      ...selectedCamper,
+                      gym: e.target.value,
+                    })
+                  }
+                />
 
-<input
-  value={selectedCamper.gym || ""}
-  onChange={(e) =>
-    setSelectedCamper({
-      ...selectedCamper,
-      gym: e.target.value,
-    })
-  }
-/>
-        <label>Primary Position</label>
+                <label>Primary Position</label>
 
-        <input
-          value={selectedCamper.primary_position || ""}
-          onChange={(e) =>
-            setSelectedCamper({
-              ...selectedCamper,
-              primary_position: e.target.value,
-            })
-          }
-        />
+                <input
+                  value={selectedCamper.primary_position || ""}
+                  onChange={(e) =>
+                    setSelectedCamper({
+                      ...selectedCamper,
+                      primary_position: e.target.value,
+                    })
+                  }
+                />
 
-        <label>Friend Group</label>
+                <label>Friend Group</label>
 
-        <input
-          value={selectedCamper.friend_group || ""}
-          onChange={(e) =>
-            setSelectedCamper({
-              ...selectedCamper,
-              friend_group: e.target.value,
-            })
-          }
-        />
+                <input
+                  value={selectedCamper.friend_group || ""}
+                  onChange={(e) =>
+                    setSelectedCamper({
+                      ...selectedCamper,
+                      friend_group: e.target.value,
+                    })
+                  }
+                />
 
-        <label>Notes</label>
+                <label>Notes</label>
 
-<textarea
-  rows="5"
-  value={selectedCamper.notes || ""}
-  onChange={(e) =>
-    setSelectedCamper({
-      ...selectedCamper,
-      notes: e.target.value,
-    })
-  }
-/>
-        <button className="primary-button" onClick={saveCamper}>
-  Save Camper
-</button>
+                <textarea
+                  rows="5"
+                  value={selectedCamper.notes || ""}
+                  onChange={(e) =>
+                    setSelectedCamper({
+                      ...selectedCamper,
+                      notes: e.target.value,
+                    })
+                  }
+                />
 
-      </div>
-
-    </div>
-  </div>
-)}
+                <button className="primary-button" onClick={saveCamper}>
+                  Save Camper
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
