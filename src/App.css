@@ -654,3 +654,13 @@ input {
     grid-template-columns: 1fr;
   }
 }
+:root {
+  --stanford-cardinal: #8c1515;
+}
+
+.hero,
+.command-hero,
+.primary-button,
+.nav-active {
+  background: var(--stanford-cardinal) !important;
+}
