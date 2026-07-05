@@ -62,7 +62,6 @@ export default function Reports({
       head: [["Name", "Camp", "Team", "Court", "Coach", "Status", "Notes"]],
       body: attendanceCampers.map((c) => {
         const info = teamDetails[c.main_team] || {};
-
         return [
           `${c.first_name || ""} ${c.last_name || ""}`,
           info.camp_id || "",
@@ -102,7 +101,6 @@ export default function Reports({
       head: [["Name", "Camp", "Team", "Court", "Coach", "Position"]],
       body: missing.map((c) => {
         const info = teamDetails[c.main_team] || {};
-
         return [
           `${c.first_name || ""} ${c.last_name || ""}`,
           info.camp_id || "",
@@ -122,15 +120,11 @@ export default function Reports({
 
   return (
     <>
-      <section className="panel attendance-controls report-controls">
+      <section className="panel report-controls">
         <h2>Reports</h2>
 
-        <select
-          value={selectedSession}
-          onChange={(e) => setSelectedSession(e.target.value)}
-        >
+        <select value={selectedSession} onChange={(e) => setSelectedSession(e.target.value)}>
           <option value="">Select Session</option>
-
           {sessions.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name} {s.session_date ? `— ${s.session_date}` : ""}
@@ -187,22 +181,19 @@ export default function Reports({
           </thead>
 
           <tbody>
-            {attendanceCampers
-              .filter((c) => !attendance[c.id])
-              .map((c) => {
-                const info = teamDetails[c.main_team] || {};
-
-                return (
-                  <tr key={c.id}>
-                    <td>{c.first_name} {c.last_name}</td>
-                    <td>{info.camp_id || "-"}</td>
-                    <td>{c.main_team || "-"}</td>
-                    <td>{info.court || "-"}</td>
-                    <td>{info.coach_1 || "-"}</td>
-                    <td>{c.primary_position || "-"}</td>
-                  </tr>
-                );
-              })}
+            {attendanceCampers.filter((c) => !attendance[c.id]).map((c) => {
+              const info = teamDetails[c.main_team] || {};
+              return (
+                <tr key={c.id}>
+                  <td>{c.first_name} {c.last_name}</td>
+                  <td>{info.camp_id || "-"}</td>
+                  <td>{c.main_team || "-"}</td>
+                  <td>{info.court || "-"}</td>
+                  <td>{info.coach_1 || "-"}</td>
+                  <td>{c.primary_position || "-"}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </section>
@@ -226,7 +217,6 @@ export default function Reports({
           <tbody>
             {attendanceCampers.map((c) => {
               const info = teamDetails[c.main_team] || {};
-
               return (
                 <tr key={c.id}>
                   <td>{c.first_name} {c.last_name}</td>
