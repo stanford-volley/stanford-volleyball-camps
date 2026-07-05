@@ -1,7 +1,19 @@
+const CAMP_OPTIONS = [
+  { value: "Camp 1", label: "CAMP 1: Beginner Day Camp" },
+  { value: "Camp 2", label: "CAMP 2: Dig/Pass/Serve Day Camp" },
+  { value: "Camp 3", label: "CAMP 3: Setter Day Camp" },
+  { value: "Camp 4", label: "CAMP 4: All Skills Day Camp" },
+  { value: "Camp 5", label: "CAMP 5: Advanced Setter Day Camp" },
+  { value: "Camp 6", label: "CAMP 6: Advanced Attacker Day Camp" },
+  { value: "Camp 7", label: "CAMP 7: Advanced Setter Camp" },
+  { value: "Camp 8", label: "CAMP 8: Individual Skills Camp" },
+];
+
 export default function Attendance({
   sessions,
   selectedSession,
   setSelectedSession,
+  deleteSession,
   createSession,
   teams,
   teamDetails,
@@ -19,12 +31,6 @@ export default function Attendance({
   markAttendance,
   updateAttendanceNotes,
 }) {
-  const camps = [...new Set(
-    Object.values(teamDetails || {})
-      .map((t) => t.camp_id)
-      .filter(Boolean)
-  )].sort();
-
   const visibleTeams = teams.filter(([team]) => {
     const info = teamDetails[team] || {};
     return !campFilter || info.camp_id === campFilter;
@@ -39,7 +45,10 @@ export default function Attendance({
           + Create Session
         </button>
 
-        <select value={selectedSession} onChange={(e) => setSelectedSession(e.target.value)}>
+        <select
+          value={selectedSession}
+          onChange={(e) => setSelectedSession(e.target.value)}
+        >
           <option value="">Select Session</option>
           {sessions.map((s) => (
             <option key={s.id} value={s.id}>
@@ -48,10 +57,19 @@ export default function Attendance({
           ))}
         </select>
 
+        <button
+          className="danger-button"
+          onClick={() => deleteSession(selectedSession)}
+        >
+          Delete Session
+        </button>
+
         <select value={campFilter} onChange={(e) => setCampFilter(e.target.value)}>
           <option value="">All Camps</option>
-          {camps.map((camp) => (
-            <option key={camp} value={camp}>{camp}</option>
+          {CAMP_OPTIONS.map((camp) => (
+            <option key={camp.value} value={camp.value}>
+              {camp.label}
+            </option>
           ))}
         </select>
 
