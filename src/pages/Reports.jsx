@@ -13,7 +13,7 @@ const CAMP_OPTIONS = [
 ];
 
 function campName(value) {
-  return CAMP_OPTIONS.find((c) => c.value === value)?.label || value || "-";
+  return CAMP_OPTIONS.find((c) => c.value === value)?.label || value || "All Camps";
 }
 
 export default function Reports({
@@ -37,6 +37,10 @@ export default function Reports({
     return !campFilter || info.camp_id === campFilter;
   });
 
+  const checkedOutCount = attendanceCampers.filter(
+    (c) => attendance[c.id]?.status === "Checked Out"
+  ).length;
+
   const notMarkedCount = attendanceCampers.filter((c) => !attendance[c.id]).length;
 
   function downloadAttendancePDF() {
@@ -55,13 +59,15 @@ export default function Reports({
     doc.text(`Present: ${presentCount}`, 120, 118);
     doc.text(`Absent: ${absentCount}`, 210, 118);
     doc.text(`Late: ${lateCount}`, 300, 118);
-    doc.text(`Not Marked: ${notMarkedCount}`, 370, 118);
+    doc.text(`Checked Out: ${checkedOutCount}`, 370, 118);
+    doc.text(`Not Marked: ${notMarkedCount}`, 470, 118);
 
     autoTable(doc, {
       startY: 140,
       head: [["Name", "Camp", "Team", "Court", "Coach", "Status", "Notes"]],
       body: attendanceCampers.map((c) => {
         const info = teamDetails[c.main_team] || {};
+
         return [
           `${c.first_name || ""} ${c.last_name || ""}`,
           info.camp_id || "",
@@ -101,6 +107,7 @@ export default function Reports({
       head: [["Name", "Camp", "Team", "Court", "Coach", "Position"]],
       body: missing.map((c) => {
         const info = teamDetails[c.main_team] || {};
+
         return [
           `${c.first_name || ""} ${c.last_name || ""}`,
           info.camp_id || "",
@@ -144,7 +151,9 @@ export default function Reports({
         <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
           <option value="">All Teams</option>
           {visibleTeams.map(([team]) => (
-            <option key={team} value={team}>{team}</option>
+            <option key={team} value={team}>
+              {team}
+            </option>
           ))}
         </select>
 
@@ -162,6 +171,7 @@ export default function Reports({
         <div><span>Present</span><strong>{presentCount}</strong></div>
         <div><span>Absent</span><strong>{absentCount}</strong></div>
         <div><span>Late</span><strong>{lateCount}</strong></div>
+        <div><span>Checked Out</span><strong>{checkedOutCount}</strong></div>
         <div><span>Not Marked</span><strong>{notMarkedCount}</strong></div>
       </section>
 
@@ -181,19 +191,22 @@ export default function Reports({
           </thead>
 
           <tbody>
-            {attendanceCampers.filter((c) => !attendance[c.id]).map((c) => {
-              const info = teamDetails[c.main_team] || {};
-              return (
-                <tr key={c.id}>
-                  <td>{c.first_name} {c.last_name}</td>
-                  <td>{info.camp_id || "-"}</td>
-                  <td>{c.main_team || "-"}</td>
-                  <td>{info.court || "-"}</td>
-                  <td>{info.coach_1 || "-"}</td>
-                  <td>{c.primary_position || "-"}</td>
-                </tr>
-              );
-            })}
+            {attendanceCampers
+              .filter((c) => !attendance[c.id])
+              .map((c) => {
+                const info = teamDetails[c.main_team] || {};
+
+                return (
+                  <tr key={c.id}>
+                    <td>{c.first_name} {c.last_name}</td>
+                    <td>{info.camp_id || "-"}</td>
+                    <td>{c.main_team || "-"}</td>
+                    <td>{info.court || "-"}</td>
+                    <td>{info.coach_1 || "-"}</td>
+                    <td>{c.primary_position || "-"}</td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </section>
@@ -217,6 +230,7 @@ export default function Reports({
           <tbody>
             {attendanceCampers.map((c) => {
               const info = teamDetails[c.main_team] || {};
+
               return (
                 <tr key={c.id}>
                   <td>{c.first_name} {c.last_name}</td>
