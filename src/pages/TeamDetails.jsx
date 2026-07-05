@@ -39,14 +39,8 @@ export default function TeamDetails({
     doc.text(`Coach 2: ${info.coach_2 || info.assistant_coach || "—"}`, 230, 128);
     doc.text(`Coach 3: ${info.coach_3 || "—"}`, 420, 128);
 
-    doc.text(`Campers: ${roster.length}`, 40, 150);
-    doc.text(`Present: ${present}`, 140, 150);
-    doc.text(`Absent: ${absent}`, 230, 150);
-    doc.text(`Late: ${late}`, 320, 150);
-    doc.text(`Not Marked: ${notMarked}`, 390, 150);
-
     autoTable(doc, {
-      startY: 170,
+      startY: 155,
       head: [["Name", "Position", "Friend Group", "Attendance", "Notes"]],
       body: roster.map((c) => [
         `${c.first_name || ""} ${c.last_name || ""}`,
@@ -74,20 +68,16 @@ export default function TeamDetails({
           Download Team Roster PDF
         </button>
 
-      <button
-  className="primary-button"
-  onClick={async () => {
-    if (
-      window.confirm(
-        `Check in all ${roster.length} campers on ${team}?`
-      )
-    ) {
-      await checkInEntireTeam(team);
-    }
-  }}
->
-  ✓ Check In Entire Team
-</button>
+        <button
+          className="primary-button"
+          onClick={async () => {
+            if (window.confirm(`Check in all ${roster.length} campers on ${team}?`)) {
+              await checkInEntireTeam(team);
+            }
+          }}
+        >
+          ✓ Check In Entire Team
+        </button>
 
         <h1>{team}</h1>
 
