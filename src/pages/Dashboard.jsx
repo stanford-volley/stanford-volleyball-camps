@@ -1,3 +1,5 @@
+import { useMemo, useState } from "react";
+
 export default function Dashboard({
   campers,
   teams,
@@ -9,12 +11,43 @@ export default function Dashboard({
   lateCount,
   importExcel,
 }) {
+  const [dashboardSearch, setDashboardSearch] = useState("");
+  const [dashboardStatus, setDashboardStatus] = useState("");
+
   const totalCampers = campers.length;
   const notMarked = totalCampers - presentCount - absentCount - lateCount;
 
   function openTeam(teamName) {
     window.dispatchEvent(new CustomEvent("openTeam", { detail: teamName }));
   }
+
+  const filteredTeams = useMemo(() => {
+    return teams.filter(([teamName, roster]) => {
+      const info = teamDetails[teamName] || {};
+      const searchText = `
+        ${teamName}
+        ${info.court || ""}
+        ${info.gym || ""}
+        ${info.lead_coach_of_gym || ""}
+        ${info.coach_1 || ""}
+        ${info.coach_2 || ""}
+        ${info.coach_3 || ""}
+        ${info.session_name || ""}
+        ${info.assignment_date || ""}
+      `.toLowerCase();
+
+      const matchesSearch = searchText.includes(dashboardSearch.toLowerCase());
+
+      const matchesStatus =
+        !dashboardStatus ||
+        roster.some((c) => {
+          if (dashboardStatus === "Not Marked") return !attendance[c.id];
+          return attendance[c.id]?.status === dashboardStatus;
+        });
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [teams, teamDetails, attendance, dashboardSearch, dashboardStatus]);
 
   return (
     <>
@@ -37,15 +70,38 @@ export default function Dashboard({
         <input type="file" accept=".xlsx,.xls" onChange={importExcel} />
       </section>
 
+      <section className="panel dashboard-controls">
+        <h2>Find Court / Team / Coach</h2>
+
+        <input
+          className="search"
+          placeholder="Search team, court, coach, session, date..."
+          value={dashboardSearch}
+          onChange={(e) => setDashboardSearch(e.target.value)}
+        />
+
+        <select
+          value={dashboardStatus}
+          onChange={(e) => setDashboardStatus(e.target.value)}
+        >
+          <option value="">All Statuses</option>
+          <option value="Present">Has Present Camper</option>
+          <option value="Absent">Has Absent Camper</option>
+          <option value="Late">Has Late Camper</option>
+          <option value="Not Marked">Has Not Marked Camper</option>
+        </select>
+      </section>
+
       <section className="panel">
         <h2>Courts / Teams / Coaches</h2>
 
         <div className="dashboard-team-grid">
-          {teams.map(([teamName, roster]) => {
+          {filteredTeams.map(([teamName, roster]) => {
             const info = teamDetails[teamName] || {};
             const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
             const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
             const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
+            const missing = roster.length - present - absent - late;
 
             return (
               <div className="dashboard-team-card" key={teamName}>
@@ -64,7 +120,7 @@ export default function Dashboard({
                   <span>{present} Present</span>
                   <span>{late} Late</span>
                   <span>{absent} Absent</span>
-                  <span>{roster.length} Total</span>
+                  <span>{missing} Missing</span>
                 </div>
 
                 <button className="primary-button" onClick={() => openTeam(teamName)}>
