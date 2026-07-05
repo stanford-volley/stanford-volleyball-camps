@@ -958,3 +958,19 @@ input {
 .command-stats {
   grid-template-columns: repeat(6, 1fr);
 }
+.bulk-attendance-actions {
+  display: grid;
+  grid-template-columns: 1fr 220px 260px;
+  gap: 10px;
+  align-items: center;
+}
+
+.bulk-attendance-actions h2 {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .bulk-attendance-actions {
+    grid-template-columns: 1fr;
+  }
+}
