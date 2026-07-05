@@ -62,9 +62,7 @@ export default function Attendance({
     });
   }, [attendanceCampers, attendanceSearch, teamDetails]);
 
-  const checkedOutCount = searchedCampers.filter(
-    (c) => attendance[c.id]?.status === "Checked Out"
-  ).length;
+  
 
   const notMarkedCount = searchedCampers.filter((c) => !attendance[c.id]).length;
 
@@ -137,7 +135,6 @@ export default function Attendance({
         <div><span>Present</span><strong>{searchedCampers.filter((c) => attendance[c.id]?.status === "Present").length}</strong></div>
         <div><span>Absent</span><strong>{searchedCampers.filter((c) => attendance[c.id]?.status === "Absent").length}</strong></div>
         <div><span>Late</span><strong>{searchedCampers.filter((c) => attendance[c.id]?.status === "Late").length}</strong></div>
-        <div><span>Checked Out</span><strong>{checkedOutCount}</strong></div>
         <div><span>Not Marked</span><strong>{notMarkedCount}</strong></div>
       </section>
 
