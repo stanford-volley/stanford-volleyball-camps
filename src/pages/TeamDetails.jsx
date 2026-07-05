@@ -76,7 +76,15 @@ export default function TeamDetails({
 
       <button
   className="primary-button"
-  onClick={() => checkInEntireTeam(team)}
+  onClick={async () => {
+    if (
+      window.confirm(
+        `Check in all ${roster.length} campers on ${team}?`
+      )
+    ) {
+      await checkInEntireTeam(team);
+    }
+  }}
 >
   ✓ Check In Entire Team
 </button>
