@@ -519,3 +519,93 @@ input {
     display: none !important;
   }
 }
+.command-hero {
+  background: linear-gradient(135deg, #8c1515, #5f0f0f);
+  color: white;
+  padding: 26px;
+  border-radius: 18px;
+  margin-bottom: 18px;
+}
+
+.command-hero h1 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.command-hero p {
+  margin-bottom: 0;
+  opacity: 0.9;
+}
+
+.command-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.command-stats div {
+  background: white;
+  border-radius: 16px;
+  padding: 18px;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.command-stats span {
+  display: block;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.command-stats strong {
+  font-size: 32px;
+  color: #8c1515;
+}
+
+.dashboard-team-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.dashboard-team-card {
+  background: #f8f8f8;
+  border: 1px solid #ddd;
+  border-left: 5px solid #8c1515;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.dashboard-team-card h3 {
+  margin: 0 0 8px;
+  color: #8c1515;
+}
+
+.dashboard-team-card p {
+  margin: 5px 0;
+}
+
+.session-list {
+  display: grid;
+  gap: 8px;
+}
+
+.session-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 10px;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+@media (max-width: 900px) {
+  .command-stats,
+  .dashboard-team-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .session-row {
+    grid-template-columns: 1fr;
+  }
+}
