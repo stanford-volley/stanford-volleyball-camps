@@ -1035,3 +1035,7 @@ input {
     margin-bottom:4px;
     color:#8c1515;
 }
+
+.report-controls {
+  grid-template-columns: 1fr 1fr 1fr 220px 220px;
+}
