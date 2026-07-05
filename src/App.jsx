@@ -20,6 +20,7 @@ export default function App() {
   const [attendance, setAttendance] = useState({});
   const [search, setSearch] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
+  const [campFilter, setCampFilter] = useState("");
   const [teamDetails, setTeamDetails] = useState({});
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedCamper, setSelectedCamper] = useState(null);
@@ -424,14 +425,15 @@ async function checkOutEntireTeam(teamName) {
 
   const attendanceCampers = useMemo(() => {
     return campers.filter((c) => {
-      const matchesTeam = !teamFilter || c.main_team === teamFilter;
-
+const teamInfo = teamDetails[c.main_team] || {};
+const matchesCamp = !campFilter || teamInfo.camp_id === campFilter;
+const matchesTeam = !teamFilter || c.main_team === teamFilter;
       const matchesStatus =
         !statusFilter ||
         (statusFilter === "Not Marked" && !attendance[c.id]) ||
         attendance[c.id]?.status === statusFilter;
 
-      return matchesTeam && matchesStatus;
+return matchesCamp && matchesTeam && matchesStatus;
     });
   }, [campers, teamFilter, statusFilter, attendance]);
 
@@ -590,6 +592,9 @@ async function checkOutEntireTeam(teamName) {
             setSelectedSession={setSelectedSession}
             createSession={createSession}
             teams={teams}
+            teamDetails={teamDetails}
+campFilter={campFilter}
+setCampFilter={setCampFilter}
             teamFilter={teamFilter}
             setTeamFilter={setTeamFilter}
             statusFilter={statusFilter}
