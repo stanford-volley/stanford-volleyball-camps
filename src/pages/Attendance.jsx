@@ -25,9 +25,6 @@ export default function Attendance({
   setTeamFilter,
   statusFilter,
   setStatusFilter,
-  presentCount,
-  absentCount,
-  lateCount,
   attendanceCampers,
   attendance,
   markAttendance,
@@ -62,8 +59,11 @@ export default function Attendance({
     });
   }, [attendanceCampers, attendanceSearch, teamDetails]);
 
-  
-
+  const total = searchedCampers.length;
+  const presentCount = searchedCampers.filter((c) => attendance[c.id]?.status === "Present").length;
+  const absentCount = searchedCampers.filter((c) => attendance[c.id]?.status === "Absent").length;
+  const lateCount = searchedCampers.filter((c) => attendance[c.id]?.status === "Late").length;
+  const checkedOutCount = searchedCampers.filter((c) => attendance[c.id]?.status === "Checked Out").length;
   const notMarkedCount = searchedCampers.filter((c) => !attendance[c.id]).length;
 
   return (
@@ -76,10 +76,7 @@ export default function Attendance({
             + Create Session
           </button>
 
-          <select
-            value={selectedSession}
-            onChange={(e) => setSelectedSession(e.target.value)}
-          >
+          <select value={selectedSession} onChange={(e) => setSelectedSession(e.target.value)}>
             <option value="">Select Session</option>
             {sessions.map((s) => (
               <option key={s.id} value={s.id}>
@@ -88,10 +85,7 @@ export default function Attendance({
             ))}
           </select>
 
-          <button
-            className="danger-button"
-            onClick={() => deleteSession(selectedSession)}
-          >
+          <button className="danger-button" onClick={() => deleteSession(selectedSession)}>
             Delete Session
           </button>
         </div>
@@ -109,21 +103,20 @@ export default function Attendance({
           <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
             <option value="">All Teams</option>
             {visibleTeams.map(([team]) => (
-              <option key={team} value={team}>{team}</option>
+              <option key={team} value={team}>
+                {team}
+              </option>
             ))}
           </select>
 
-          <select
-    value={statusFilter}
-    onChange={(e) => setStatusFilter(e.target.value)}
->
-    <option value="">All Statuses</option>
-    <option value="Present">Present</option>
-    <option value="Absent">Absent</option>
-    <option value="Late">Late</option>
-    <option value="Checked Out">Checked Out</option>
-    <option value="Not Marked">Not Marked</option>
-</select>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="">All Statuses</option>
+            <option value="Present">Present</option>
+            <option value="Absent">Absent</option>
+            <option value="Late">Late</option>
+            <option value="Checked Out">Checked Out</option>
+            <option value="Not Marked">Not Marked</option>
+          </select>
         </div>
 
         <input
@@ -135,10 +128,11 @@ export default function Attendance({
       </section>
 
       <section className="stats attendance-stats">
-        <div><span>Total</span><strong>{searchedCampers.length}</strong></div>
-        <div><span>Present</span><strong>{searchedCampers.filter((c) => attendance[c.id]?.status === "Present").length}</strong></div>
-        <div><span>Absent</span><strong>{searchedCampers.filter((c) => attendance[c.id]?.status === "Absent").length}</strong></div>
-        <div><span>Late</span><strong>{searchedCampers.filter((c) => attendance[c.id]?.status === "Late").length}</strong></div>
+        <div><span>Total</span><strong>{total}</strong></div>
+        <div><span>Present</span><strong>{presentCount}</strong></div>
+        <div><span>Absent</span><strong>{absentCount}</strong></div>
+        <div><span>Late</span><strong>{lateCount}</strong></div>
+        <div><span>Checked Out</span><strong>{checkedOutCount}</strong></div>
         <div><span>Not Marked</span><strong>{notMarkedCount}</strong></div>
       </section>
 
@@ -151,19 +145,44 @@ export default function Attendance({
             <div className="attendance-row compact-attendance-row" key={c.id}>
               <div className="attendance-person">
                 <h3>{c.first_name} {c.last_name}</h3>
+
                 <p>
                   {info.camp_id || "—"} | {c.main_team || "—"} | {info.court || "—"} | {c.primary_position || "—"}
                 </p>
+
                 <span className={`status-pill status-${status.replaceAll(" ", "-").toLowerCase()}`}>
                   {status}
                 </span>
               </div>
 
               <div className="attendance-buttons compact-buttons">
-                <button className={status === "Present" ? "present active" : "present"} onClick={() => markAttendance(c.id, "Present")}>Present</button>
-                <button className={status === "Absent" ? "absent active" : "absent"} onClick={() => markAttendance(c.id, "Absent")}>Absent</button>
-                <button className={status === "Late" ? "late active" : "late"} onClick={() => markAttendance(c.id, "Late")}>Late</button>
-                <button className={status === "Checked Out" ? "checkout active" : "checkout"} onClick={() => markAttendance(c.id, "Checked Out")}>Out</button>
+                <button
+                  className={status === "Present" ? "present active" : "present"}
+                  onClick={() => markAttendance(c.id, "Present")}
+                >
+                  Present
+                </button>
+
+                <button
+                  className={status === "Absent" ? "absent active" : "absent"}
+                  onClick={() => markAttendance(c.id, "Absent")}
+                >
+                  Absent
+                </button>
+
+                <button
+                  className={status === "Late" ? "late active" : "late"}
+                  onClick={() => markAttendance(c.id, "Late")}
+                >
+                  Late
+                </button>
+
+                <button
+                  className={status === "Checked Out" ? "checkout active" : "checkout"}
+                  onClick={() => markAttendance(c.id, "Checked Out")}
+                >
+                  Out
+                </button>
               </div>
 
               <textarea
