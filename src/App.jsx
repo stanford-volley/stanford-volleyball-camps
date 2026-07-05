@@ -1,3 +1,4 @@
+import Reports from "./pages/Reports";
 import Attendance from "./pages/Attendance";
 import Teams from "./pages/Teams";
 import Campers from "./pages/Campers";
@@ -503,126 +504,20 @@ setSelectedSession("");
 )}
 
         {activeTab === "Reports" && (
-          <>
-            <section className="panel attendance-controls">
-              <h2>Reports</h2>
-
-              <select
-                value={selectedSession}
-                onChange={(e) => setSelectedSession(e.target.value)}
-              >
-                <option value="">Select Session</option>
-
-                {sessions.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} {s.session_date ? `— ${s.session_date}` : ""}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={teamFilter}
-                onChange={(e) => setTeamFilter(e.target.value)}
-              >
-                <option value="">All Teams</option>
-
-                {teams.map(([team]) => (
-                  <option key={team} value={team}>
-                    {team}
-                  </option>
-                ))}
-              </select>
-
-              <button className="primary-button" onClick={() => window.print()}>
-                Print Report
-              </button>
-            </section>
-
-            <section className="stats">
-              <div>
-                <span>Total in View</span>
-                <strong>{attendanceCampers.length}</strong>
-              </div>
-
-              <div>
-                <span>Present</span>
-                <strong>{presentCount}</strong>
-              </div>
-
-              <div>
-                <span>Absent</span>
-                <strong>{absentCount}</strong>
-              </div>
-
-              <div>
-                <span>Late</span>
-                <strong>{lateCount}</strong>
-              </div>
-
-              <div>
-                <span>Not Marked</span>
-                <strong>
-                  {attendanceCampers.filter((c) => !attendance[c.id]).length}
-                </strong>
-              </div>
-            </section>
-
-            <section className="panel">
-              <h2>Missing / Not Marked</h2>
-
-              <div className="report-list">
-                {attendanceCampers
-                  .filter((c) => !attendance[c.id])
-                  .map((c) => (
-                    <div className="report-row" key={c.id}>
-                      <strong>
-                        {c.first_name} {c.last_name}
-                      </strong>
-                      <span>{c.main_team || "—"}</span>
-                      <span>{c.primary_position || "—"}</span>
-                      <span>Grade {c.grade || "—"}</span>
-                    </div>
-                  ))}
-              </div>
-            </section>
-
-            <section className="panel">
-              <h2>Absent Campers</h2>
-
-              <div className="report-list">
-                {attendanceCampers
-                  .filter((c) => attendance[c.id]?.status === "Absent")
-                  .map((c) => (
-                    <div className="report-row" key={c.id}>
-                      <strong>
-                        {c.first_name} {c.last_name}
-                      </strong>
-                      <span>{c.main_team || "—"}</span>
-                      <span>{c.primary_position || "—"}</span>
-                      <span>Grade {c.grade || "—"}</span>
-                    </div>
-                  ))}
-              </div>
-            </section>
-
-            <section className="panel">
-              <h2>Full Attendance Report</h2>
-
-              <div className="report-list">
-                {attendanceCampers.map((c) => (
-                  <div className="report-row" key={c.id}>
-                    <strong>
-                      {c.first_name} {c.last_name}
-                    </strong>
-                    <span>{c.main_team || "—"}</span>
-                    <span>{c.primary_position || "—"}</span>
-                    <span>{attendance[c.id]?.status || "Not Marked"}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </>
-        )}
+  <Reports
+    sessions={sessions}
+    selectedSession={selectedSession}
+    setSelectedSession={setSelectedSession}
+    teams={teams}
+    teamFilter={teamFilter}
+    setTeamFilter={setTeamFilter}
+    attendanceCampers={attendanceCampers}
+    attendance={attendance}
+    presentCount={presentCount}
+    absentCount={absentCount}
+    lateCount={lateCount}
+  />
+)}
 
         {selectedCamper && (
           <div className="drawer-overlay">
