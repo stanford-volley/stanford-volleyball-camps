@@ -171,7 +171,28 @@ async function deleteSession(sessionId) {
       },
     }));
   }
+async function bulkMarkAttendance(camperList, status) {
+  if (!selectedSession) {
+    alert("Create or select a session first.");
+    return;
+  }
 
+  const updates = camperList.map((c) => ({
+    camper_id: c.id,
+    session_id: selectedSession,
+    status,
+    notes: attendance[c.id]?.notes || "",
+    updated_at: new Date().toISOString(),
+  }));
+
+  const { error } = await supabase.from("attendance").upsert(updates, {
+    onConflict: "camper_id,session_id",
+  });
+
+  if (error) return alert(error.message);
+
+  await loadAttendance(selectedSession);
+}
   async function checkInEntireTeam(teamName) {
     if (!selectedSession) {
       alert("Create or select a session first.");
@@ -640,6 +661,7 @@ async function checkOutEntireTeam(teamName) {
             attendanceCampers={attendanceCampers}
             attendance={attendance}
             markAttendance={markAttendance}
+            bulkMarkAttendance={bulkMarkAttendance}
             updateAttendanceNotes={updateAttendanceNotes}
           />
         )}
