@@ -8,10 +8,12 @@ export default function Teams({
   editCamper,
   moveCamperTeam,
   saveTeamInfo,
+  selectedTeamFromDashboard,
 }) {
   const [search, setSearch] = useState("");
-  const [selectedTeam, setSelectedTeam] = useState(null);
-
+const [selectedTeam, setSelectedTeam] = useState(
+  selectedTeamFromDashboard || null
+);
   const filteredTeams = useMemo(() => {
     return teams.filter(([team]) =>
       team.toLowerCase().includes(search.toLowerCase())
