@@ -999,3 +999,39 @@ input {
 .coach-list div {
   line-height: 1.25;
 }
+.camper-modal-backdrop{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.45);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:5000;
+}
+
+.camper-modal{
+    background:white;
+    width:700px;
+    max-width:95vw;
+    max-height:90vh;
+    overflow:auto;
+    border-radius:18px;
+    padding:30px;
+    position:relative;
+}
+
+.close-button{
+    position:absolute;
+    top:20px;
+    right:20px;
+}
+
+.camper-section{
+    margin-top:18px;
+}
+
+.camper-section strong{
+    display:block;
+    margin-bottom:4px;
+    color:#8c1515;
+}
