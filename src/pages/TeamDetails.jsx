@@ -10,6 +10,7 @@ export default function TeamDetails({
   onBack,
   editCamper,
   moveCamperTeam,
+  checkInEntireTeam,
 }) {
   const info = teamInfo || {};
 
@@ -72,6 +73,13 @@ export default function TeamDetails({
         <button className="primary-button" onClick={downloadRosterPDF}>
           Download Team Roster PDF
         </button>
+
+      <button
+  className="primary-button"
+  onClick={() => checkInEntireTeam(team)}
+>
+  ✓ Check In Entire Team
+</button>
 
         <h1>{team}</h1>
 
