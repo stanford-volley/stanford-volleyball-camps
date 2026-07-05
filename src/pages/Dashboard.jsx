@@ -43,24 +43,22 @@ export default function Dashboard({
         <div className="dashboard-team-grid">
           {teams.map(([teamName, roster]) => {
             const info = teamDetails[teamName] || {};
-            const present = roster.filter(
-              (c) => attendance[c.id]?.status === "Present"
-            ).length;
-            const absent = roster.filter(
-              (c) => attendance[c.id]?.status === "Absent"
-            ).length;
-            const late = roster.filter(
-              (c) => attendance[c.id]?.status === "Late"
-            ).length;
+            const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
+            const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
+            const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
 
             return (
               <div className="dashboard-team-card" key={teamName}>
                 <h3>{teamName}</h3>
 
+                <p><strong>Camp:</strong> {info.camp_id || "—"}</p>
+                <p><strong>Date:</strong> {info.assignment_date || "—"}</p>
+                <p><strong>Session:</strong> {info.session_name || "—"}</p>
                 <p><strong>Court:</strong> {info.court || "—"}</p>
-                <p><strong>Gym:</strong> {info.gym || "—"}</p>
+                <p><strong>Lead Coach:</strong> {info.lead_coach_of_gym || "—"}</p>
                 <p><strong>Coach 1:</strong> {info.coach_1 || info.coach || "—"}</p>
                 <p><strong>Coach 2:</strong> {info.coach_2 || info.assistant_coach || "—"}</p>
+                <p><strong>Coach 3:</strong> {info.coach_3 || "—"}</p>
 
                 <div className="mini-stats">
                   <span>{present} Present</span>
