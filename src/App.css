@@ -715,3 +715,23 @@ input {
 .team-card .primary-button {
   margin-top: 8px !important;
 }
+.team-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.team-controls select {
+  max-width: 360px;
+}
+
+.camp-team-section {
+  margin-top: 18px;
+}
+
+.camp-team-section > h2 {
+  background: #8c1515;
+  color: white;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 0 0 14px;
+}
