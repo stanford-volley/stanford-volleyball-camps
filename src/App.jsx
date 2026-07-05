@@ -475,6 +475,7 @@ setSelectedSession("");
             teamDetails={teamDetails}
             editCamper={editCamper}
             moveCamperTeam={moveCamperTeam}
+            selectedTeamFromDashboard={selectedTeamFromDashboard}
             saveTeamInfo={saveTeamInfo}
           />
         )}
