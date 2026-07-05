@@ -2,6 +2,17 @@ import { useMemo, useState } from "react";
 
 const GYMS = ["Maples", "APG", "Ford", "Rec"];
 
+const CAMP_NAMES = {
+  "Camp 1": "Camp 1: Beginner Day Camp",
+  "Camp 2": "Camp 2: Dig/Pass/Serve Day Camp",
+  "Camp 3": "Camp 3: Setter Day Camp",
+  "Camp 4": "Camp 4: All Skills Day Camp",
+  "Camp 5": "Camp 5: Advanced Setter Day Camp",
+  "Camp 6": "Camp 6: Advanced Attacker Day Camp",
+  "Camp 7": "Camp 7: Advanced Setter Camp",
+  "Camp 8": "Camp 8: Individual Skills Camp",
+};
+
 function normalizeGym(info) {
   const text = `${info.gym || ""} ${info.court || ""}`.toLowerCase();
 
@@ -11,16 +22,6 @@ function normalizeGym(info) {
   if (text.includes("rec") || text.includes("burnham")) return "Rec";
 
   return "Other";
-}
-
-function teamStatus(roster, attendance) {
-  const total = roster.length;
-  const marked = roster.filter((c) => attendance[c.id]).length;
-
-  if (total === 0) return "empty";
-  if (marked === total) return "complete";
-  if (marked > 0) return "partial";
-  return "missing";
 }
 
 export default function Dashboard({
@@ -41,7 +42,8 @@ export default function Dashboard({
   const checkedOutCount = campers.filter(
     (c) => attendance[c.id]?.status === "Checked Out"
   ).length;
-  const notMarked = totalCampers - presentCount - absentCount - lateCount - checkedOutCount;
+  const notMarked =
+    totalCampers - presentCount - absentCount - lateCount - checkedOutCount;
 
   function openTeam(teamName) {
     window.dispatchEvent(new CustomEvent("openTeam", { detail: teamName }));
@@ -50,7 +52,6 @@ export default function Dashboard({
   const filteredTeams = useMemo(() => {
     return teams.filter(([teamName, roster]) => {
       const info = teamDetails[teamName] || {};
-      const status = teamStatus(roster, attendance);
 
       const searchText = `
         ${teamName}
@@ -61,14 +62,33 @@ export default function Dashboard({
         ${info.coach_1 || ""}
         ${info.coach_2 || ""}
         ${info.coach_3 || ""}
-        ${info.session_name || ""}
-        ${info.assignment_date || ""}
       `.toLowerCase();
 
-      const matchesSearch = searchText.includes(dashboardSearch.toLowerCase());
-      const matchesStatus = !dashboardStatus || status === dashboardStatus;
+      const present = roster.filter(
+        (c) => attendance[c.id]?.status === "Present"
+      ).length;
+      const absent = roster.filter(
+        (c) => attendance[c.id]?.status === "Absent"
+      ).length;
+      const late = roster.filter(
+        (c) => attendance[c.id]?.status === "Late"
+      ).length;
+      const checkedOut = roster.filter(
+        (c) => attendance[c.id]?.status === "Checked Out"
+      ).length;
+      const missing = roster.length - present - absent - late - checkedOut;
 
-      return matchesSearch && matchesStatus;
+      const matchesStatus =
+        !dashboardStatus ||
+        (dashboardStatus === "Present" && present > 0) ||
+        (dashboardStatus === "Absent" && absent > 0) ||
+        (dashboardStatus === "Late" && late > 0) ||
+        (dashboardStatus === "Checked Out" && checkedOut > 0) ||
+        (dashboardStatus === "Missing" && missing > 0);
+
+      return (
+        searchText.includes(dashboardSearch.toLowerCase()) && matchesStatus
+      );
     });
   }, [teams, teamDetails, attendance, dashboardSearch, dashboardStatus]);
 
@@ -107,7 +127,7 @@ export default function Dashboard({
 
         <input
           className="search"
-          placeholder="Search team, court, coach, session, date..."
+          placeholder="Search team, court, coach..."
           value={dashboardSearch}
           onChange={(e) => setDashboardSearch(e.target.value)}
         />
@@ -116,10 +136,12 @@ export default function Dashboard({
           value={dashboardStatus}
           onChange={(e) => setDashboardStatus(e.target.value)}
         >
-          <option value="">All Team Statuses</option>
-          <option value="complete">Complete</option>
-          <option value="partial">In Progress</option>
-          <option value="missing">Not Started</option>
+          <option value="">All Statuses</option>
+          <option value="Present">Has Present Camper</option>
+          <option value="Absent">Has Absent Camper</option>
+          <option value="Late">Has Late Camper</option>
+          <option value="Checked Out">Has Checked Out Camper</option>
+          <option value="Missing">Has Missing Camper</option>
         </select>
       </section>
 
@@ -141,30 +163,24 @@ export default function Dashboard({
                   const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
                   const checkedOut = roster.filter((c) => attendance[c.id]?.status === "Checked Out").length;
                   const missing = roster.length - present - absent - late - checkedOut;
-                  const status = teamStatus(roster, attendance);
 
                   return (
-                    <div className={`dashboard-team-card team-status-${status}`} key={teamName}>
+                    <div className="dashboard-team-card" key={teamName}>
                       <div className="team-card-top">
                         <h3>{teamName}</h3>
-                        <span className={`team-status-pill ${status}`}>
-                          {status === "complete"
-                            ? "Complete"
-                            : status === "partial"
-                            ? "In Progress"
-                            : "Not Started"}
-                        </span>
                       </div>
 
-                      <p><strong>Camp:</strong> {info.camp_id || "—"}</p>
-                      <p><strong>Session:</strong> {info.session_name || "—"}</p>
+                      <p><strong>{CAMP_NAMES[info.camp_id] || "Unassigned Camp"}</strong></p>
                       <p><strong>Court:</strong> {info.court || "—"}</p>
-                      <p><strong>Lead Coach:</strong> {info.lead_coach_of_gym || "—"}</p>
-                      <p><strong>Coach 1:</strong> {info.coach_1 || info.coach || "—"}</p>
-                      <p><strong>Coach 2:</strong> {info.coach_2 || info.assistant_coach || "—"}</p>
-                      <p><strong>Coach 3:</strong> {info.coach_3 || "—"}</p>
 
-                      <div className="mini-stats">
+                      <div className="coach-list">
+                        <strong>Coaches</strong>
+                        <div>{info.coach_1 || info.coach || "—"}</div>
+                        {info.coach_2 && <div>{info.coach_2}</div>}
+                        {info.coach_3 && <div>{info.coach_3}</div>}
+                      </div>
+
+                      <div className="attendance-summary">
                         <span>{present} Present</span>
                         <span>{late} Late</span>
                         <span>{absent} Absent</span>
