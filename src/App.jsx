@@ -200,7 +200,30 @@ export default function App() {
       },
     }));
   }
+async function checkOutEntireTeam(teamName) {
+  if (!selectedSession) {
+    alert("Create or select a session first.");
+    return;
+  }
 
+  const roster = campers.filter((c) => c.main_team === teamName);
+
+  const updates = roster.map((c) => ({
+    camper_id: c.id,
+    session_id: selectedSession,
+    status: "Checked Out",
+    notes: attendance[c.id]?.notes || "",
+    updated_at: new Date().toISOString(),
+  }));
+
+  const { error } = await supabase.from("attendance").upsert(updates, {
+    onConflict: "camper_id,session_id",
+  });
+
+  if (error) return alert(error.message);
+
+  await loadAttendance(selectedSession);
+}
   async function importExcel(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -539,6 +562,7 @@ export default function App() {
             selectedTeamFromDashboard={selectedTeamFromDashboard}
             saveTeamInfo={saveTeamInfo}
             checkInEntireTeam={checkInEntireTeam}
+            checkOutEntireTeam={checkOutEntireTeam}
           />
         )}
 
