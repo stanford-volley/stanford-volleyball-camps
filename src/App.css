@@ -904,3 +904,57 @@ input {
   margin: 0 0 10px;
   color: #8c1515;
 }
+.team-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.team-card-top h3 {
+  margin: 0;
+}
+
+.team-status-pill {
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.team-status-pill.complete {
+  background: #d8f3dc;
+  color: #146c2e;
+}
+
+.team-status-pill.partial {
+  background: #fff3cd;
+  color: #7a5b00;
+}
+
+.team-status-pill.missing {
+  background: #f8d7da;
+  color: #842029;
+}
+
+.team-status-complete {
+  border-left-color: #16803c !important;
+}
+
+.team-status-partial {
+  border-left-color: #d18b00 !important;
+}
+
+.team-status-missing {
+  border-left-color: #b00020 !important;
+}
+
+.dashboard-team-card p {
+  margin: 3px 0 !important;
+  line-height: 1.25 !important;
+}
+
+.command-stats {
+  grid-template-columns: repeat(6, 1fr);
+}
