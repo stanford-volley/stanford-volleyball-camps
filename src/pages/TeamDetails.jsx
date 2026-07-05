@@ -18,6 +18,7 @@ export default function TeamDetails({
   const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
   const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
   const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
+  const checkedOut = roster.filter((c) => attendance[c.id]?.status === "Checked Out").length;
   const notMarked = roster.filter((c) => !attendance[c.id]).length;
 
   function downloadRosterPDF() {
@@ -81,15 +82,16 @@ export default function TeamDetails({
         </button>
 
         <button
-  className="primary-button"
-  onClick={async () => {
-    if (window.confirm(`Check out all ${roster.length} campers on ${team}?`)) {
-      await checkOutEntireTeam(team);
-    }
-  }}
->
-  Check Out Entire Team
-</button>
+          className="primary-button"
+          onClick={async () => {
+            if (window.confirm(`Check out all ${roster.length} campers on ${team}?`)) {
+              await checkOutEntireTeam(team);
+            }
+          }}
+        >
+          Check Out Entire Team
+        </button>
+
         <h1>{team}</h1>
 
         <section className="stats">
@@ -97,6 +99,7 @@ export default function TeamDetails({
           <div><span>Present</span><strong>{present}</strong></div>
           <div><span>Absent</span><strong>{absent}</strong></div>
           <div><span>Late</span><strong>{late}</strong></div>
+          <div><span>Checked Out</span><strong>{checkedOut}</strong></div>
           <div><span>Not Marked</span><strong>{notMarked}</strong></div>
         </section>
       </section>
