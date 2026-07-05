@@ -1,3 +1,4 @@
+import CamperProfile from "./pages/CamperProfile";
 import Coaches from "./pages/Coaches";
 import Reports from "./pages/Reports";
 import Attendance from "./pages/Attendance";
@@ -16,6 +17,7 @@ export default function App() {
   const [selectedTeamFromDashboard, setSelectedTeamFromDashboard] =
     useState(null);
   const [campers, setCampers] = useState([]);
+  const [selectedCamper, setSelectedCamper] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState("");
   const [attendance, setAttendance] = useState({});
