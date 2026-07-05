@@ -24,6 +24,15 @@ function normalizeGym(info) {
   return "Other";
 }
 
+function splitCoachNames(value) {
+  if (!value) return [];
+
+  return String(value)
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
 export default function Dashboard({
   campers,
   teams,
@@ -83,7 +92,6 @@ export default function Dashboard({
         (dashboardStatus === "Present" && present > 0) ||
         (dashboardStatus === "Absent" && absent > 0) ||
         (dashboardStatus === "Late" && late > 0) ||
-        (dashboardStatus === "Checked Out" && checkedOut > 0) ||
         (dashboardStatus === "Missing" && missing > 0);
 
       return (
@@ -112,7 +120,6 @@ export default function Dashboard({
         <div><span>Present</span><strong>{presentCount}</strong></div>
         <div><span>Late</span><strong>{lateCount}</strong></div>
         <div><span>Absent</span><strong>{absentCount}</strong></div>
-        <div><span>Checked Out</span><strong>{checkedOutCount}</strong></div>
         <div><span>Not Marked</span><strong>{notMarked}</strong></div>
       </section>
 
@@ -140,7 +147,6 @@ export default function Dashboard({
           <option value="Present">Has Present Camper</option>
           <option value="Absent">Has Absent Camper</option>
           <option value="Late">Has Late Camper</option>
-          <option value="Checked Out">Has Checked Out Camper</option>
           <option value="Missing">Has Missing Camper</option>
         </select>
       </section>
@@ -161,30 +167,34 @@ export default function Dashboard({
                   const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
                   const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
                   const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
-                  const checkedOut = roster.filter((c) => attendance[c.id]?.status === "Checked Out").length;
-                  const missing = roster.length - present - absent - late - checkedOut;
+                  const missing = roster.length - present - absent - late;
+
+                  const coaches = [
+                    ...splitCoachNames(info.coach_1 || info.coach),
+                    ...splitCoachNames(info.coach_2 || info.assistant_coach),
+                    ...splitCoachNames(info.coach_3),
+                  ];
 
                   return (
                     <div className="dashboard-team-card" key={teamName}>
-                      <div className="team-card-top">
-                        <h3>{teamName}</h3>
-                      </div>
+                      <h3>{teamName}</h3>
 
                       <p><strong>{CAMP_NAMES[info.camp_id] || "Unassigned Camp"}</strong></p>
                       <p><strong>Court:</strong> {info.court || "—"}</p>
 
                       <div className="coach-list">
-                        <strong>Coaches</strong>
-                        <div>{info.coach_1 || info.coach || "—"}</div>
-                        {info.coach_2 && <div>{info.coach_2}</div>}
-                        {info.coach_3 && <div>{info.coach_3}</div>}
+                        <strong>Coaches:</strong>
+                        {coaches.length ? (
+                          coaches.map((coach) => <div key={coach}>{coach}</div>)
+                        ) : (
+                          <div>—</div>
+                        )}
                       </div>
 
                       <div className="attendance-summary">
                         <span>{present} Present</span>
                         <span>{late} Late</span>
                         <span>{absent} Absent</span>
-                        <span>{checkedOut} Out</span>
                         <span>{missing} Missing</span>
                         <span>{roster.length} Total</span>
                       </div>
