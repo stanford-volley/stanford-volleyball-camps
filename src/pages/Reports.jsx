@@ -1,3 +1,6 @@
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
 const CAMP_OPTIONS = [
   { value: "Camp 1", label: "CAMP 1: Beginner Day Camp" },
   { value: "Camp 2", label: "CAMP 2: Dig/Pass/Serve Day Camp" },
@@ -8,6 +11,10 @@ const CAMP_OPTIONS = [
   { value: "Camp 7", label: "CAMP 7: Advanced Setter Camp" },
   { value: "Camp 8", label: "CAMP 8: Individual Skills Camp" },
 ];
+
+function campName(value) {
+  return CAMP_OPTIONS.find((c) => c.value === value)?.label || value || "-";
+}
 
 export default function Reports({
   sessions,
@@ -30,11 +37,88 @@ export default function Reports({
     return !campFilter || info.camp_id === campFilter;
   });
 
-  const checkedOutCount = attendanceCampers.filter(
-    (c) => attendance[c.id]?.status === "Checked Out"
-  ).length;
-
   const notMarkedCount = attendanceCampers.filter((c) => !attendance[c.id]).length;
+
+  function downloadAttendancePDF() {
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
+
+    doc.setFontSize(18);
+    doc.text("Stanford Volleyball Camps", 40, 40);
+
+    doc.setFontSize(13);
+    doc.text("Attendance Report", 40, 62);
+
+    doc.setFontSize(10);
+    doc.text(`Camp: ${campName(campFilter)}`, 40, 84);
+    doc.text(`Team: ${teamFilter || "All Teams"}`, 40, 100);
+    doc.text(`Total: ${attendanceCampers.length}`, 40, 118);
+    doc.text(`Present: ${presentCount}`, 120, 118);
+    doc.text(`Absent: ${absentCount}`, 210, 118);
+    doc.text(`Late: ${lateCount}`, 300, 118);
+    doc.text(`Not Marked: ${notMarkedCount}`, 370, 118);
+
+    autoTable(doc, {
+      startY: 140,
+      head: [["Name", "Camp", "Team", "Court", "Coach", "Status", "Notes"]],
+      body: attendanceCampers.map((c) => {
+        const info = teamDetails[c.main_team] || {};
+
+        return [
+          `${c.first_name || ""} ${c.last_name || ""}`,
+          info.camp_id || "",
+          c.main_team || "",
+          info.court || "",
+          info.coach_1 || "",
+          attendance[c.id]?.status || "Not Marked",
+          attendance[c.id]?.notes || "",
+        ];
+      }),
+      styles: { fontSize: 7, cellPadding: 3, overflow: "linebreak" },
+      headStyles: { fillColor: [140, 21, 21], textColor: 255 },
+      margin: { left: 30, right: 30 },
+    });
+
+    doc.save("attendance-report.pdf");
+  }
+
+  function downloadMissingPDF() {
+    const missing = attendanceCampers.filter((c) => !attendance[c.id]);
+
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
+
+    doc.setFontSize(18);
+    doc.text("Stanford Volleyball Camps", 40, 40);
+
+    doc.setFontSize(13);
+    doc.text("Missing / Not Marked Campers", 40, 62);
+
+    doc.setFontSize(10);
+    doc.text(`Camp: ${campName(campFilter)}`, 40, 84);
+    doc.text(`Team: ${teamFilter || "All Teams"}`, 40, 100);
+    doc.text(`Missing: ${missing.length}`, 40, 118);
+
+    autoTable(doc, {
+      startY: 140,
+      head: [["Name", "Camp", "Team", "Court", "Coach", "Position"]],
+      body: missing.map((c) => {
+        const info = teamDetails[c.main_team] || {};
+
+        return [
+          `${c.first_name || ""} ${c.last_name || ""}`,
+          info.camp_id || "",
+          c.main_team || "",
+          info.court || "",
+          info.coach_1 || "",
+          c.primary_position || "",
+        ];
+      }),
+      styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak" },
+      headStyles: { fillColor: [140, 21, 21], textColor: 255 },
+      margin: { left: 40, right: 40 },
+    });
+
+    doc.save("missing-campers-report.pdf");
+  }
 
   return (
     <>
@@ -70,8 +154,12 @@ export default function Reports({
           ))}
         </select>
 
-        <button className="primary-button" onClick={() => window.print()}>
-          Print Report
+        <button className="primary-button" onClick={downloadAttendancePDF}>
+          Download Attendance PDF
+        </button>
+
+        <button className="primary-button" onClick={downloadMissingPDF}>
+          Download Missing PDF
         </button>
       </section>
 
@@ -80,7 +168,6 @@ export default function Reports({
         <div><span>Present</span><strong>{presentCount}</strong></div>
         <div><span>Absent</span><strong>{absentCount}</strong></div>
         <div><span>Late</span><strong>{lateCount}</strong></div>
-        <div><span>Checked Out</span><strong>{checkedOutCount}</strong></div>
         <div><span>Not Marked</span><strong>{notMarkedCount}</strong></div>
       </section>
 
