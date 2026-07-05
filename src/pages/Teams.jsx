@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import TeamDetails from "./TeamDetails";
 
 export default function Teams({
@@ -9,11 +9,17 @@ export default function Teams({
   moveCamperTeam,
   saveTeamInfo,
   selectedTeamFromDashboard,
+  checkInEntireTeam,
 }) {
   const [search, setSearch] = useState("");
-const [selectedTeam, setSelectedTeam] = useState(
-  selectedTeamFromDashboard || null
-);
+  const [selectedTeam, setSelectedTeam] = useState(null);
+
+  useEffect(() => {
+    if (selectedTeamFromDashboard) {
+      setSelectedTeam(selectedTeamFromDashboard);
+    }
+  }, [selectedTeamFromDashboard]);
+
   const filteredTeams = useMemo(() => {
     return teams.filter(([team]) =>
       team.toLowerCase().includes(search.toLowerCase())
@@ -65,15 +71,11 @@ const [selectedTeam, setSelectedTeam] = useState(
               </p>
 
               <p>
-                <strong>Gym:</strong> {info.gym || "—"}
-              </p>
-
-              <p>
                 <strong>Court:</strong> {info.court || "—"}
               </p>
 
               <p>
-                <strong>Coach:</strong> {info.coach || "—"}
+                <strong>Coach 1:</strong> {info.coach_1 || info.coach || "—"}
               </p>
 
               <button
