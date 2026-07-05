@@ -661,7 +661,6 @@ async function checkOutEntireTeam(teamName) {
             attendanceCampers={attendanceCampers}
             attendance={attendance}
             markAttendance={markAttendance}
-            bulkMarkAttendance={bulkMarkAttendance}
             updateAttendanceNotes={updateAttendanceNotes}
           />
         )}
