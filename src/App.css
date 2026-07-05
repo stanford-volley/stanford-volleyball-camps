@@ -735,3 +735,101 @@ input {
   padding: 12px 16px;
   margin: 0 0 14px;
 }
+.attendance-page-header {
+  display: grid;
+  gap: 14px;
+}
+
+.attendance-toolbar,
+.attendance-filters {
+  display: grid;
+  grid-template-columns: 220px 1fr 220px;
+  gap: 10px;
+  align-items: center;
+}
+
+.attendance-stats {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.compact-attendance-list {
+  gap: 8px;
+}
+
+.compact-attendance-row {
+  display: grid;
+  grid-template-columns: 1.2fr auto 320px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+}
+
+.attendance-person h3 {
+  margin: 0 0 3px;
+}
+
+.attendance-person p {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #eee;
+}
+
+.status-present {
+  background: #d8f3dc;
+  color: #146c2e;
+}
+
+.status-absent {
+  background: #f8d7da;
+  color: #842029;
+}
+
+.status-late {
+  background: #fff3cd;
+  color: #7a5b00;
+}
+
+.status-checked-out {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.compact-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 72px);
+  gap: 6px;
+}
+
+.checkout {
+  background: #b8c7e0;
+  color: white;
+}
+
+.checkout.active {
+  background: #1d4ed8;
+}
+
+.compact-notes {
+  min-height: 54px;
+}
+
+@media (max-width: 1100px) {
+  .attendance-toolbar,
+  .attendance-filters,
+  .compact-attendance-row,
+  .attendance-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .compact-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
