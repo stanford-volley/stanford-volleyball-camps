@@ -27,7 +27,19 @@ const [selectedTeamFromDashboard, setSelectedTeamFromDashboard] =
     loadSessions();
     loadTeamDetails();
   }, []);
+useEffect(() => {
+  function openTeam(e) {
+    setSelectedTeamFromDashboard(e.detail);
+    setActiveTab("Teams");
+  }
 
+  window.addEventListener("openTeam", openTeam);
+
+  return () => {
+    window.removeEventListener("openTeam", openTeam);
+  };
+}, []);
+  
   useEffect(() => {
     if (selectedSession) loadAttendance(selectedSession);
   }, [selectedSession]);
