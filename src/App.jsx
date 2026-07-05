@@ -128,7 +128,29 @@ useEffect(() => {
       alert("Create or select a session first.");
       return;
     }
+async function checkInEntireTeam(teamName) {
+  const roster = campers.filter((c) => c.main_team === teamName);
 
+  const updates = roster.map((c) => ({
+    camper_id: c.id,
+    session_id: selectedSession,
+    status: "Present",
+    notes: attendance[c.id]?.notes || "",
+  }));
+
+  const { error } = await supabase
+    .from("attendance")
+    .upsert(updates, {
+      onConflict: "camper_id,session_id",
+    });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  await loadAttendance(selectedSession);
+}
     const existingNotes = attendance[camperId]?.notes || "";
 
     const { error } = await supabase.from("attendance").upsert(
