@@ -113,13 +113,17 @@ export default function Attendance({
             ))}
           </select>
 
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="">All Statuses</option>
-            <option value="Present">Present</option>
-            <option value="Absent">Absent</option>
-            <option value="Late">Late</option>
-            <option value="Not Marked">Not Marked</option>
-          </select>
+          <select
+    value={statusFilter}
+    onChange={(e) => setStatusFilter(e.target.value)}
+>
+    <option value="">All Statuses</option>
+    <option value="Present">Present</option>
+    <option value="Absent">Absent</option>
+    <option value="Late">Late</option>
+    <option value="Checked Out">Checked Out</option>
+    <option value="Not Marked">Not Marked</option>
+</select>
         </div>
 
         <input
@@ -159,6 +163,7 @@ export default function Attendance({
                 <button className={status === "Present" ? "present active" : "present"} onClick={() => markAttendance(c.id, "Present")}>Present</button>
                 <button className={status === "Absent" ? "absent active" : "absent"} onClick={() => markAttendance(c.id, "Absent")}>Absent</button>
                 <button className={status === "Late" ? "late active" : "late"} onClick={() => markAttendance(c.id, "Late")}>Late</button>
+                <button className={status === "Checked Out" ? "checkout active" : "checkout"} onClick={() => markAttendance(c.id, "Checked Out")}>Out</button>
               </div>
 
               <textarea
