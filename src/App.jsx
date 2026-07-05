@@ -1,5 +1,3 @@
-import CamperProfile from "./pages/CamperProfile";
-import Coaches from "./pages/Coaches";
 import Reports from "./pages/Reports";
 import Attendance from "./pages/Attendance";
 import Teams from "./pages/Teams";
@@ -14,10 +12,8 @@ const tabs = ["Dashboard", "Campers", "Teams", "Attendance", "Reports"];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("Dashboard");
-  const [selectedTeamFromDashboard, setSelectedTeamFromDashboard] =
-    useState(null);
+  const [selectedTeamFromDashboard, setSelectedTeamFromDashboard] = useState(null);
   const [campers, setCampers] = useState([]);
-  const [selectedCamper, setSelectedCamper] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState("");
   const [attendance, setAttendance] = useState({});
@@ -53,10 +49,12 @@ export default function App() {
 
   async function loadTeamDetails() {
     const { data, error } = await supabase.from("teams").select("*");
+
     if (error) return alert(error.message);
 
     const map = {};
-    data.forEach((team) => {
+
+    (data || []).forEach((team) => {
       map[team.name] = team;
     });
 
@@ -70,6 +68,7 @@ export default function App() {
       .order("last_name", { ascending: true });
 
     if (error) return alert(error.message);
+
     setCampers(data || []);
   }
 
@@ -82,6 +81,7 @@ export default function App() {
     if (error) return alert(error.message);
 
     setSessions(data || []);
+
     if (data?.length && !selectedSession) {
       setSelectedSession(data[0].id);
     }
@@ -96,7 +96,8 @@ export default function App() {
     if (error) return alert(error.message);
 
     const map = {};
-    data.forEach((row) => {
+
+    (data || []).forEach((row) => {
       map[row.camper_id] = {
         status: row.status,
         notes: row.notes || "",
@@ -120,30 +121,32 @@ export default function App() {
     });
 
     if (error) return alert(error.message);
+
     await loadSessions();
   }
-async function deleteSession(sessionId) {
-  if (!sessionId) {
-    alert("Select a session first.");
-    return;
+
+  async function deleteSession(sessionId) {
+    if (!sessionId) {
+      alert("Select a session first.");
+      return;
+    }
+
+    if (!window.confirm("Delete this attendance session?")) return;
+
+    await supabase.from("attendance").delete().eq("session_id", sessionId);
+
+    const { error } = await supabase
+      .from("attendance_sessions")
+      .delete()
+      .eq("id", sessionId);
+
+    if (error) return alert(error.message);
+
+    setSelectedSession("");
+    setAttendance({});
+    await loadSessions();
   }
 
-  if (!window.confirm("Delete this attendance session?")) return;
-
-  await supabase.from("attendance").delete().eq("session_id", sessionId);
-
-  const { error } = await supabase
-    .from("attendance_sessions")
-    .delete()
-    .eq("id", sessionId);
-
-  if (error) return alert(error.message);
-
-  setSelectedSession("");
-  setAttendance({});
-  await loadSessions();
-}
-  
   async function markAttendance(camperId, status) {
     if (!selectedSession) {
       alert("Create or select a session first.");
@@ -173,28 +176,7 @@ async function deleteSession(sessionId) {
       },
     }));
   }
-async function bulkMarkAttendance(camperList, status) {
-  if (!selectedSession) {
-    alert("Create or select a session first.");
-    return;
-  }
 
-  const updates = camperList.map((c) => ({
-    camper_id: c.id,
-    session_id: selectedSession,
-    status,
-    notes: attendance[c.id]?.notes || "",
-    updated_at: new Date().toISOString(),
-  }));
-
-  const { error } = await supabase.from("attendance").upsert(updates, {
-    onConflict: "camper_id,session_id",
-  });
-
-  if (error) return alert(error.message);
-
-  await loadAttendance(selectedSession);
-}
   async function checkInEntireTeam(teamName) {
     if (!selectedSession) {
       alert("Create or select a session first.");
@@ -218,6 +200,43 @@ async function bulkMarkAttendance(camperList, status) {
     if (error) return alert(error.message);
 
     await loadAttendance(selectedSession);
+  }
+
+  async function checkOutEntireTeam(teamName) {
+    if (!selectedSession) {
+      alert("Create or select a session first.");
+      return;
+    }
+
+    const roster = campers.filter((c) => c.main_team === teamName);
+
+    const updates = roster.map((c) => ({
+      camper_id: c.id,
+      session_id: selectedSession,
+      status: "Checked Out",
+      notes: attendance[c.id]?.notes || "",
+      updated_at: new Date().toISOString(),
+    }));
+
+    const { error } = await supabase.from("attendance").upsert(updates, {
+      onConflict: "camper_id,session_id",
+      ignoreDuplicates: false,
+    });
+
+    if (error) return alert(error.message);
+
+    setAttendance((prev) => {
+      const next = { ...prev };
+
+      roster.forEach((c) => {
+        next[c.id] = {
+          status: "Checked Out",
+          notes: prev[c.id]?.notes || "",
+        };
+      });
+
+      return next;
+    });
   }
 
   async function updateAttendanceNotes(camperId, notes) {
@@ -246,47 +265,7 @@ async function bulkMarkAttendance(camperList, status) {
       },
     }));
   }
-async function checkOutEntireTeam(teamName) {
-  if (!selectedSession) {
-    alert("Create or select a session first.");
-    return;
-  }
 
-  const roster = campers.filter((c) => c.main_team === teamName);
-
-  const updates = roster.map((c) => ({
-    camper_id: c.id,
-    session_id: selectedSession,
-    status: "Checked Out",
-    notes: attendance[c.id]?.notes || "",
-    updated_at: new Date().toISOString(),
-  }));
-
-  const { error } = await supabase
-    .from("attendance")
-    .upsert(updates, {
-      onConflict: "camper_id,session_id",
-      ignoreDuplicates: false,
-    });
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  setAttendance((prev) => {
-    const next = { ...prev };
-
-    roster.forEach((c) => {
-      next[c.id] = {
-        status: "Checked Out",
-        notes: prev[c.id]?.notes || "",
-      };
-    });
-
-    return next;
-  });
-}
   async function importExcel(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -298,8 +277,7 @@ async function checkOutEntireTeam(teamName) {
     const teamSheet = workbook.Sheets["Coach + Court Assignment"];
 
     if (!camperSheet) return alert("Could not find tab named Assign to Teams.");
-    if (!teamSheet)
-      return alert("Could not find tab named Coach + Court Assignment.");
+    if (!teamSheet) return alert("Could not find tab named Coach + Court Assignment.");
 
     const camperRows = XLSX.utils.sheet_to_json(camperSheet, { defval: "" });
 
@@ -358,9 +336,7 @@ async function checkOutEntireTeam(teamName) {
           gym: String(r["Gym"] || r["Lead Coach of Gyms"] || "").trim(),
           lead_coach_of_gym: String(r["Lead Coach of Gyms"] || "").trim(),
           assignment_date: String(r["Date"] || "").trim(),
-          session_name: String(
-            r["Session"] || r["Date and Session"] || ""
-          ).trim(),
+          session_name: String(r["Session"] || r["Date and Session"] || "").trim(),
           rank: Number(r["Rank"] || 0),
         };
       });
@@ -388,18 +364,14 @@ async function checkOutEntireTeam(teamName) {
 
     if (camperError) return alert(camperError.message);
 
-    const { error: teamError } = await supabase
-      .from("teams")
-      .insert(cleanedTeams);
+    const { error: teamError } = await supabase.from("teams").insert(cleanedTeams);
 
     if (teamError) return alert(teamError.message);
 
     const sessionMap = {};
 
     cleanedTeams.forEach((team) => {
-      const key = `${team.assignment_date || "No Date"}-${
-        team.session_name || "No Session"
-      }`;
+      const key = `${team.assignment_date || "No Date"}-${team.session_name || "No Session"}`;
 
       if (!sessionMap[key]) {
         sessionMap[key] = {
@@ -421,9 +393,7 @@ async function checkOutEntireTeam(teamName) {
       if (sessionError) return alert(sessionError.message);
     }
 
-    alert(
-      `Imported ${cleanedCampers.length} campers and ${cleanedTeams.length} teams.`
-    );
+    alert(`Imported ${cleanedCampers.length} campers and ${cleanedTeams.length} teams.`);
 
     await loadCampers();
     await loadTeamDetails();
@@ -463,29 +433,23 @@ async function checkOutEntireTeam(teamName) {
       grouped[team].push(c);
     });
 
-    return Object.entries(grouped).sort(([a], [b]) =>
-      a.localeCompare(b)
-    );
+    return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
   }, [campers]);
 
   const attendanceCampers = useMemo(() => {
-  return campers.filter((c) => {
-    const teamInfo = teamDetails[c.main_team] || {};
+    return campers.filter((c) => {
+      const teamInfo = teamDetails[c.main_team] || {};
 
-    const matchesCamp =
-      !campFilter || teamInfo.camp_id === campFilter;
+      const matchesCamp = !campFilter || teamInfo.camp_id === campFilter;
+      const matchesTeam = !teamFilter || c.main_team === teamFilter;
+      const matchesStatus =
+        !statusFilter ||
+        (statusFilter === "Not Marked" && !attendance[c.id]) ||
+        attendance[c.id]?.status === statusFilter;
 
-    const matchesTeam =
-      !teamFilter || c.main_team === teamFilter;
-
-    const matchesStatus =
-      !statusFilter ||
-      (statusFilter === "Not Marked" && !attendance[c.id]) ||
-      attendance[c.id]?.status === statusFilter;
-
-    return matchesCamp && matchesTeam && matchesStatus;
-  });
-}, [campers, teamDetails, campFilter, teamFilter, statusFilter, attendance]);
+      return matchesCamp && matchesTeam && matchesStatus;
+    });
+  }, [campers, teamDetails, campFilter, teamFilter, statusFilter, attendance]);
 
   const reportCampers = attendanceCampers;
 
@@ -542,9 +506,7 @@ async function checkOutEntireTeam(teamName) {
     if (error) return alert(error.message);
 
     setCampers((prev) =>
-      prev.map((c) =>
-        c.id === camper.id ? { ...c, main_team: newTeam } : c
-      )
+      prev.map((c) => (c.id === camper.id ? { ...c, main_team: newTeam } : c))
     );
   }
 
@@ -634,14 +596,7 @@ async function checkOutEntireTeam(teamName) {
             checkOutEntireTeam={checkOutEntireTeam}
           />
         )}
-        
-{activeTab === "Coaches" && (
-  <Coaches
-    teams={teams}
-    teamDetails={teamDetails}
-    attendance={attendance}
-  />
-)}
+
         {activeTab === "Attendance" && (
           <Attendance
             sessions={sessions}
@@ -657,9 +612,6 @@ async function checkOutEntireTeam(teamName) {
             setTeamFilter={setTeamFilter}
             statusFilter={statusFilter}
             setStatusFilter={setStatusFilter}
-            presentCount={presentCount}
-            absentCount={absentCount}
-            lateCount={lateCount}
             attendanceCampers={attendanceCampers}
             attendance={attendance}
             markAttendance={markAttendance}
@@ -700,9 +652,13 @@ async function checkOutEntireTeam(teamName) {
                 {selectedCamper.first_name} {selectedCamper.last_name}
               </h2>
 
+              <p>
+                <strong>Current Status:</strong>{" "}
+                {attendance[selectedCamper.id]?.status || "Not Marked"}
+              </p>
+
               <div className="drawer-section">
                 <label>Team</label>
-
                 <select
                   value={selectedCamper.main_team || ""}
                   onChange={(e) =>
@@ -720,7 +676,6 @@ async function checkOutEntireTeam(teamName) {
                 </select>
 
                 <label>Gym</label>
-
                 <input
                   value={selectedCamper.gym || ""}
                   onChange={(e) =>
@@ -732,7 +687,6 @@ async function checkOutEntireTeam(teamName) {
                 />
 
                 <label>Primary Position</label>
-
                 <input
                   value={selectedCamper.primary_position || ""}
                   onChange={(e) =>
@@ -744,7 +698,6 @@ async function checkOutEntireTeam(teamName) {
                 />
 
                 <label>Friend Group</label>
-
                 <input
                   value={selectedCamper.friend_group || ""}
                   onChange={(e) =>
@@ -756,7 +709,6 @@ async function checkOutEntireTeam(teamName) {
                 />
 
                 <label>Notes</label>
-
                 <textarea
                   rows="5"
                   value={selectedCamper.notes || ""}
@@ -768,9 +720,39 @@ async function checkOutEntireTeam(teamName) {
                   }
                 />
 
-                <button className="primary-button" onClick={saveCamper}>
-                  Save Camper
-                </button>
+                <div className="drawer-actions">
+                  <button className="primary-button" onClick={saveCamper}>
+                    Save Camper
+                  </button>
+
+                  <button
+                    className="present"
+                    onClick={() => markAttendance(selectedCamper.id, "Present")}
+                  >
+                    Present
+                  </button>
+
+                  <button
+                    className="absent"
+                    onClick={() => markAttendance(selectedCamper.id, "Absent")}
+                  >
+                    Absent
+                  </button>
+
+                  <button
+                    className="late"
+                    onClick={() => markAttendance(selectedCamper.id, "Late")}
+                  >
+                    Late
+                  </button>
+
+                  <button
+                    className="checkout"
+                    onClick={() => markAttendance(selectedCamper.id, "Checked Out")}
+                  >
+                    Out
+                  </button>
+                </div>
               </div>
             </div>
           </div>
