@@ -8,7 +8,8 @@ export default function Campers({
   return (
     <>
       <section className="panel">
-        <h2>Find Campers</h2>
+        <h2>Campers</h2>
+
         <input
           className="search"
           placeholder="Search by name, team, position, age, grade, club, friend group..."
@@ -24,11 +25,10 @@ export default function Campers({
               <th>Name</th>
               <th>Team</th>
               <th>Camp</th>
-              <th>Gym</th>
               <th>Position</th>
+              <th>Grade</th>
               <th>Friend Group</th>
               <th>Attendance</th>
-              <th>Notes</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -36,14 +36,19 @@ export default function Campers({
           <tbody>
             {filteredCampers.map((c) => (
               <tr key={c.id}>
-                <td>{c.first_name} {c.last_name}</td>
+                <td>
+                  <strong>
+                    {c.first_name} {c.last_name}
+                  </strong>
+                </td>
+
                 <td>{c.main_team || "-"}</td>
                 <td>{c.camp || "-"}</td>
-                <td>{c.gym || "-"}</td>
                 <td>{c.primary_position || "-"}</td>
+                <td>{c.grade || "-"}</td>
                 <td>{c.friend_group || "-"}</td>
-                <td>{attendance[c.id]?.status || "-"}</td>
-                <td>{attendance[c.id]?.notes || ""}</td>
+                <td>{attendance[c.id]?.status || "Not Marked"}</td>
+
                 <td>
                   <button
                     className="small-button"
