@@ -29,20 +29,23 @@ export default function TeamDetails({
 
     doc.setFontSize(10);
     doc.text(`Camp: ${info.camp_id || "—"}`, 40, 88);
-    doc.text(`Court: ${info.court || "—"}`, 140, 88);
-    doc.text(`Gym: ${info.gym || "—"}`, 260, 88);
+    doc.text(`Date: ${info.assignment_date || "—"}`, 140, 88);
+    doc.text(`Session: ${info.session_name || "—"}`, 260, 88);
+    doc.text(`Court: ${info.court || "—"}`, 430, 88);
 
-    doc.text(`Coach 1: ${info.coach_1 || info.coach || "—"}`, 40, 108);
-    doc.text(`Coach 2: ${info.coach_2 || info.assistant_coach || "—"}`, 260, 108);
+    doc.text(`Lead Coach: ${info.lead_coach_of_gym || "—"}`, 40, 108);
+    doc.text(`Coach 1: ${info.coach_1 || info.coach || "—"}`, 40, 128);
+    doc.text(`Coach 2: ${info.coach_2 || info.assistant_coach || "—"}`, 230, 128);
+    doc.text(`Coach 3: ${info.coach_3 || "—"}`, 420, 128);
 
-    doc.text(`Campers: ${roster.length}`, 40, 128);
-    doc.text(`Present: ${present}`, 140, 128);
-    doc.text(`Absent: ${absent}`, 230, 128);
-    doc.text(`Late: ${late}`, 320, 128);
-    doc.text(`Not Marked: ${notMarked}`, 390, 128);
+    doc.text(`Campers: ${roster.length}`, 40, 150);
+    doc.text(`Present: ${present}`, 140, 150);
+    doc.text(`Absent: ${absent}`, 230, 150);
+    doc.text(`Late: ${late}`, 320, 150);
+    doc.text(`Not Marked: ${notMarked}`, 390, 150);
 
     autoTable(doc, {
-      startY: 150,
+      startY: 170,
       head: [["Name", "Position", "Friend Group", "Attendance", "Notes"]],
       body: roster.map((c) => [
         `${c.first_name || ""} ${c.last_name || ""}`,
@@ -84,12 +87,16 @@ export default function TeamDetails({
       <section className="panel team-edit-panel">
         <h2>Coach + Court Assignment</h2>
 
-        <p><strong>Camp:</strong> {info.camp_id || "—"}</p>
-        <p><strong>Court:</strong> {info.court || "—"}</p>
-        <p><strong>Gym:</strong> {info.gym || "—"}</p>
-        <p><strong>Coach 1:</strong> {info.coach_1 || info.coach || "—"}</p>
-        <p><strong>Coach 2:</strong> {info.coach_2 || info.assistant_coach || "—"}</p>
-        <p><strong>Coach 3:</strong> {info.coach_3 || "—"}</p>
+        <div className="assignment-grid">
+          <p><strong>Camp:</strong> {info.camp_id || "—"}</p>
+          <p><strong>Date:</strong> {info.assignment_date || "—"}</p>
+          <p><strong>Session:</strong> {info.session_name || "—"}</p>
+          <p><strong>Court:</strong> {info.court || "—"}</p>
+          <p><strong>Lead Coach:</strong> {info.lead_coach_of_gym || "—"}</p>
+          <p><strong>Coach 1:</strong> {info.coach_1 || info.coach || "—"}</p>
+          <p><strong>Coach 2:</strong> {info.coach_2 || info.assistant_coach || "—"}</p>
+          <p><strong>Coach 3:</strong> {info.coach_3 || "—"}</p>
+        </div>
       </section>
 
       <section className="panel">
