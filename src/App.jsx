@@ -445,18 +445,23 @@ async function checkOutEntireTeam(teamName) {
   }, [campers]);
 
   const attendanceCampers = useMemo(() => {
-    return campers.filter((c) => {
-const teamInfo = teamDetails[c.main_team] || {};
-const matchesCamp = !campFilter || teamInfo.camp_id === campFilter;
-const matchesTeam = !teamFilter || c.main_team === teamFilter;
-      const matchesStatus =
-        !statusFilter ||
-        (statusFilter === "Not Marked" && !attendance[c.id]) ||
-        attendance[c.id]?.status === statusFilter;
+  return campers.filter((c) => {
+    const teamInfo = teamDetails[c.main_team] || {};
 
-return matchesCamp && matchesTeam && matchesStatus;
-    });
-  }, [campers, teamFilter, statusFilter, attendance]);
+    const matchesCamp =
+      !campFilter || teamInfo.camp_id === campFilter;
+
+    const matchesTeam =
+      !teamFilter || c.main_team === teamFilter;
+
+    const matchesStatus =
+      !statusFilter ||
+      (statusFilter === "Not Marked" && !attendance[c.id]) ||
+      attendance[c.id]?.status === statusFilter;
+
+    return matchesCamp && matchesTeam && matchesStatus;
+  });
+}, [campers, teamDetails, campFilter, teamFilter, statusFilter, attendance]);
 
   const reportCampers = attendanceCampers;
 
