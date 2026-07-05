@@ -229,27 +229,29 @@ useEffect(() => {
   const teamRows = XLSX.utils.sheet_to_json(teamSheet, { defval: "" });
 
   const cleanedTeams = teamRows
-    .filter((r) => {
-      const teamName = String(r["Team Name"] || "").trim();
-      return teamName && teamName.toLowerCase() !== "team name";
-    })
-    .map((r) => {
-      const court = String(r["Court"] || "").trim();
-      const gym = court ? court.replace(/\s*\d+$/, "").trim() : "";
+  .filter((r) => {
+    const teamName = String(r["Team Name"] || "").trim();
+    return teamName && teamName.toLowerCase() !== "team name";
+  })
+  .map((r) => {
+    const court = String(r["Court"] || "").trim();
 
-      return {
-        name: String(r["Team Name"] || "").trim(),
-        camp_id: String(r["Camp ID"] || "").trim(),
-        coach_1: String(r["Coach 1"] || "").trim(),
-        coach_2: String(r["Coach 2"] || "").trim(),
-        coach_3: String(r["Coach 3"] || "").trim(),
-        coach: String(r["Coach 1"] || "").trim(),
-        assistant_coach: String(r["Coach 2"] || "").trim(),
-        court,
-        gym,
-        rank: Number(r["Rank"] || 0),
-      };
-    });
+    return {
+      name: String(r["Team Name"] || "").trim(),
+      camp_id: String(r["Camp #"] || r["Camp ID"] || "").trim(),
+      coach_1: String(r["Coach 1"] || "").trim(),
+      coach_2: String(r["Coach 2"] || "").trim(),
+      coach_3: String(r["Coach 3"] || "").trim(),
+      coach: String(r["Coach 1"] || "").trim(),
+      assistant_coach: String(r["Coach 2"] || "").trim(),
+      court,
+      gym: String(r["Gym"] || r["Lead Coach of Gyms"] || "").trim(),
+      lead_coach_of_gym: String(r["Lead Coach of Gyms"] || "").trim(),
+      assignment_date: String(r["Date"] || "").trim(),
+      session_name: String(r["Session"] || r["Date and Session"] || "").trim(),
+      rank: Number(r["Rank"] || 0),
+    };
+  });
 
   // Clear previous camp
 
