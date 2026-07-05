@@ -223,8 +223,11 @@ useEffect(() => {
       tshirt: String(r["T-Shirt"] || "").trim(),
       meal_add_on: String(r["Meal Add On"] || "").trim(),
       pickup: String(r["Pickup?"] || "").trim(),
-      camper_rank: Number(r["CAMPER RANK"] || 0),
-    }));
+camper_rank: Number(r["CAMPER RANK"] || 0),
+
+jersey_number: String(r["Jersey #"] || "").trim(),
+
+court_position: String(r["Court Position"] || "").trim(),    }));
 
   const teamRows = XLSX.utils.sheet_to_json(teamSheet, { defval: "" });
 
