@@ -10,6 +10,8 @@ const tabs = ["Dashboard", "Campers", "Teams", "Attendance", "Reports"];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("Dashboard");
+const [selectedTeamFromDashboard, setSelectedTeamFromDashboard] =
+  useState(null);
   const [campers, setCampers] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState("");
