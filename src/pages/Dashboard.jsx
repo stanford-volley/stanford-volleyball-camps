@@ -8,50 +8,67 @@ export default function Dashboard({
   importExcel,
 }) {
   const totalCampers = campers.length;
-  const marked = presentCount + absentCount + lateCount;
-  const notMarked = totalCampers - marked;
+  const notMarked = totalCampers - presentCount - absentCount - lateCount;
 
-  <section className="panel">
-  <h2>Courts & Teams</h2>
+  function openTeam(teamName) {
+    window.dispatchEvent(
+      new CustomEvent("openTeam", {
+        detail: teamName,
+      })
+    );
+  }
 
-  <div className="dashboard-team-grid">
-    {teams.map(([teamName, roster]) => {
-      const total = roster.length;
+  return (
+    <>
+      <section className="command-hero">
+        <h1>Camp Command Center</h1>
+        <p>Live overview for campers, teams, courts, and attendance.</p>
+      </section>
 
-      return (
-        <div className="dashboard-team-card" key={teamName}>
-          <h3>{teamName}</h3>
+      <section className="command-stats">
+        <div><span>Campers</span><strong>{totalCampers}</strong></div>
+        <div><span>Present</span><strong>{presentCount}</strong></div>
+        <div><span>Late</span><strong>{lateCount}</strong></div>
+        <div><span>Absent</span><strong>{absentCount}</strong></div>
+        <div><span>Not Marked</span><strong>{notMarked}</strong></div>
+      </section>
 
-          <p>
-            <strong>{total}</strong> Campers
-          </p>
+      <section className="panel">
+        <h2>Import Camp Workbook</h2>
+        <p>
+          Upload the Excel workbook. This replaces the current camp and imports
+          campers plus Coach + Court Assignment.
+        </p>
+        <input type="file" accept=".xlsx,.xls" onChange={importExcel} />
+      </section>
 
-          <p>
-            Court: <strong>{roster[0]?.court || "—"}</strong>
-          </p>
+      <section className="panel">
+        <h2>Teams / Courts</h2>
 
-          <p>
-            Coach:
-            <strong> {roster[0]?.coach_1 || "—"}</strong>
-          </p>
+        <div className="dashboard-team-grid">
+          {teams.map(([teamName, roster]) => {
+            const present = roster.filter(
+              (c) => c.attendance_status === "Present"
+            ).length;
 
-          <button
-            className="primary-button"
-            onClick={() => {
-              window.dispatchEvent(
-                new CustomEvent("openTeam", {
-                  detail: teamName,
-                })
-              );
-            }}
-          >
-            Open Team
-          </button>
+            return (
+              <div className="dashboard-team-card" key={teamName}>
+                <h3>{teamName}</h3>
+
+                <p><strong>{roster.length}</strong> campers</p>
+                <p><strong>{present}</strong> present</p>
+
+                <button
+                  className="primary-button"
+                  onClick={() => openTeam(teamName)}
+                >
+                  Open Team
+                </button>
+              </div>
+            );
+          })}
         </div>
-      );
-    })}
-  </div>
-</section>
+      </section>
 
       <section className="panel">
         <h2>Sessions</h2>
