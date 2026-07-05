@@ -974,3 +974,28 @@ input {
     grid-template-columns: 1fr;
   }
 }
+.attendance-summary {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.attendance-summary span {
+  display: block;
+  background: #f4f4f4;
+  border-radius: 8px;
+  text-align: center;
+  padding: 6px;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.coach-list strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.coach-list div {
+  line-height: 1.25;
+}
