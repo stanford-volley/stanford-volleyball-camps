@@ -879,3 +879,28 @@ input {
   margin: 0 0 10px;
   color: #8c1515;
 }
+.coach-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.coach-controls select {
+  max-width: 360px;
+}
+
+.coach-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.coach-card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+
+.coach-card h3 {
+  margin: 0 0 10px;
+  color: #8c1515;
+}
