@@ -29,7 +29,6 @@ export default function Attendance({
   attendanceCampers,
   attendance,
   markAttendance,
-  bulkMarkAttendance,
   updateAttendanceNotes,
 }) {
   const visibleTeams = teams.filter(([team]) => {
@@ -101,31 +100,7 @@ export default function Attendance({
         </div>
       </section>
 
-      <section className="panel bulk-attendance-actions">
-  <h2>Bulk Actions</h2>
-
-  <button
-    className="primary-button"
-    onClick={() => {
-      if (window.confirm(`Mark ${attendanceCampers.length} visible campers Present?`)) {
-        bulkMarkAttendance(attendanceCampers, "Present");
-      }
-    }}
-  >
-    Mark Visible Present
-  </button>
-
-  <button
-    className="primary-button"
-    onClick={() => {
-      if (window.confirm(`Mark ${attendanceCampers.length} visible campers Checked Out?`)) {
-        bulkMarkAttendance(attendanceCampers, "Checked Out");
-      }
-    }}
-  >
-    Mark Visible Checked Out
-  </button>
-</section>
+      
       
       <section className="stats attendance-stats">
         <div><span>Total</span><strong>{attendanceCampers.length}</strong></div>
