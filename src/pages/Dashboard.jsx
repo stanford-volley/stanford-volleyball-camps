@@ -1,6 +1,8 @@
 export default function Dashboard({
   campers,
   teams,
+  teamDetails,
+  attendance,
   sessions,
   presentCount,
   absentCount,
@@ -11,18 +13,14 @@ export default function Dashboard({
   const notMarked = totalCampers - presentCount - absentCount - lateCount;
 
   function openTeam(teamName) {
-    window.dispatchEvent(
-      new CustomEvent("openTeam", {
-        detail: teamName,
-      })
-    );
+    window.dispatchEvent(new CustomEvent("openTeam", { detail: teamName }));
   }
 
   return (
     <>
       <section className="command-hero">
         <h1>Camp Command Center</h1>
-        <p>Live overview for campers, teams, courts, and attendance.</p>
+        <p>Live camp overview from the imported workbook.</p>
       </section>
 
       <section className="command-stats">
@@ -35,33 +33,43 @@ export default function Dashboard({
 
       <section className="panel">
         <h2>Import Camp Workbook</h2>
-        <p>
-          Upload the Excel workbook. This replaces the current camp and imports
-          campers plus Coach + Court Assignment.
-        </p>
+        <p>Upload the latest Excel workbook. This replaces the current camp data.</p>
         <input type="file" accept=".xlsx,.xls" onChange={importExcel} />
       </section>
 
       <section className="panel">
-        <h2>Teams / Courts</h2>
+        <h2>Courts / Teams / Coaches</h2>
 
         <div className="dashboard-team-grid">
           {teams.map(([teamName, roster]) => {
+            const info = teamDetails[teamName] || {};
             const present = roster.filter(
-              (c) => c.attendance_status === "Present"
+              (c) => attendance[c.id]?.status === "Present"
+            ).length;
+            const absent = roster.filter(
+              (c) => attendance[c.id]?.status === "Absent"
+            ).length;
+            const late = roster.filter(
+              (c) => attendance[c.id]?.status === "Late"
             ).length;
 
             return (
               <div className="dashboard-team-card" key={teamName}>
                 <h3>{teamName}</h3>
 
-                <p><strong>{roster.length}</strong> campers</p>
-                <p><strong>{present}</strong> present</p>
+                <p><strong>Court:</strong> {info.court || "—"}</p>
+                <p><strong>Gym:</strong> {info.gym || "—"}</p>
+                <p><strong>Coach 1:</strong> {info.coach_1 || info.coach || "—"}</p>
+                <p><strong>Coach 2:</strong> {info.coach_2 || info.assistant_coach || "—"}</p>
 
-                <button
-                  className="primary-button"
-                  onClick={() => openTeam(teamName)}
-                >
+                <div className="mini-stats">
+                  <span>{present} Present</span>
+                  <span>{late} Late</span>
+                  <span>{absent} Absent</span>
+                  <span>{roster.length} Total</span>
+                </div>
+
+                <button className="primary-button" onClick={() => openTeam(teamName)}>
                   Open Team
                 </button>
               </div>
