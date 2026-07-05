@@ -623,3 +623,18 @@ input {
   font-size: 13px;
   text-align: center;
 }
+.assignment-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px 16px;
+}
+
+.assignment-grid p {
+  margin: 4px 0;
+}
+
+@media (max-width: 900px) {
+  .assignment-grid {
+    grid-template-columns: 1fr;
+  }
+}
