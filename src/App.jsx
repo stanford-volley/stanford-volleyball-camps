@@ -12,8 +12,8 @@ const tabs = ["Dashboard", "Campers", "Teams", "Attendance", "Reports"];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("Dashboard");
-const [selectedTeamFromDashboard, setSelectedTeamFromDashboard] =
-  useState(null);
+  const [selectedTeamFromDashboard, setSelectedTeamFromDashboard] =
+    useState(null);
   const [campers, setCampers] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState("");
@@ -29,26 +29,26 @@ const [selectedTeamFromDashboard, setSelectedTeamFromDashboard] =
     loadSessions();
     loadTeamDetails();
   }, []);
-useEffect(() => {
-  function openTeam(e) {
-    setSelectedTeamFromDashboard(e.detail);
-    setActiveTab("Teams");
-  }
 
-  window.addEventListener("openTeam", openTeam);
+  useEffect(() => {
+    function openTeam(e) {
+      setSelectedTeamFromDashboard(e.detail);
+      setActiveTab("Teams");
+    }
 
-  return () => {
-    window.removeEventListener("openTeam", openTeam);
-  };
-}, []);
-  
+    window.addEventListener("openTeam", openTeam);
+
+    return () => {
+      window.removeEventListener("openTeam", openTeam);
+    };
+  }, []);
+
   useEffect(() => {
     if (selectedSession) loadAttendance(selectedSession);
   }, [selectedSession]);
 
   async function loadTeamDetails() {
     const { data, error } = await supabase.from("teams").select("*");
-
     if (error) return alert(error.message);
 
     const map = {};
@@ -66,7 +66,6 @@ useEffect(() => {
       .order("last_name", { ascending: true });
 
     if (error) return alert(error.message);
-
     setCampers(data || []);
   }
 
@@ -79,7 +78,6 @@ useEffect(() => {
     if (error) return alert(error.message);
 
     setSessions(data || []);
-
     if (data?.length && !selectedSession) {
       setSelectedSession(data[0].id);
     }
@@ -94,7 +92,6 @@ useEffect(() => {
     if (error) return alert(error.message);
 
     const map = {};
-
     data.forEach((row) => {
       map[row.camper_id] = {
         status: row.status,
@@ -119,7 +116,6 @@ useEffect(() => {
     });
 
     if (error) return alert(error.message);
-
     await loadSessions();
   }
 
@@ -128,29 +124,7 @@ useEffect(() => {
       alert("Create or select a session first.");
       return;
     }
-async function checkInEntireTeam(teamName) {
-  const roster = campers.filter((c) => c.main_team === teamName);
 
-  const updates = roster.map((c) => ({
-    camper_id: c.id,
-    session_id: selectedSession,
-    status: "Present",
-    notes: attendance[c.id]?.notes || "",
-  }));
-
-  const { error } = await supabase
-    .from("attendance")
-    .upsert(updates, {
-      onConflict: "camper_id,session_id",
-    });
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  await loadAttendance(selectedSession);
-}
     const existingNotes = attendance[camperId]?.notes || "";
 
     const { error } = await supabase.from("attendance").upsert(
@@ -173,6 +147,31 @@ async function checkInEntireTeam(teamName) {
         notes: existingNotes,
       },
     }));
+  }
+
+  async function checkInEntireTeam(teamName) {
+    if (!selectedSession) {
+      alert("Create or select a session first.");
+      return;
+    }
+
+    const roster = campers.filter((c) => c.main_team === teamName);
+
+    const updates = roster.map((c) => ({
+      camper_id: c.id,
+      session_id: selectedSession,
+      status: "Present",
+      notes: attendance[c.id]?.notes || "",
+      updated_at: new Date().toISOString(),
+    }));
+
+    const { error } = await supabase.from("attendance").upsert(updates, {
+      onConflict: "camper_id,session_id",
+    });
+
+    if (error) return alert(error.message);
+
+    await loadAttendance(selectedSession);
   }
 
   async function updateAttendanceNotes(camperId, notes) {
@@ -203,146 +202,150 @@ async function checkInEntireTeam(teamName) {
   }
 
   async function importExcel(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+    const file = e.target.files[0];
+    if (!file) return;
 
-  const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer);
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer);
 
-  const camperSheet = workbook.Sheets["Assign to Teams"];
-  const teamSheet = workbook.Sheets["Coach + Court Assignment"];
+    const camperSheet = workbook.Sheets["Assign to Teams"];
+    const teamSheet = workbook.Sheets["Coach + Court Assignment"];
 
-  if (!camperSheet) return alert("Could not find tab named Assign to Teams.");
-  if (!teamSheet) return alert("Could not find tab named Coach + Court Assignment.");
+    if (!camperSheet) return alert("Could not find tab named Assign to Teams.");
+    if (!teamSheet)
+      return alert("Could not find tab named Coach + Court Assignment.");
 
-  const camperRows = XLSX.utils.sheet_to_json(camperSheet, { defval: "" });
+    const camperRows = XLSX.utils.sheet_to_json(camperSheet, { defval: "" });
 
-  const cleanedCampers = camperRows
-    .filter((r) => {
-      const first = String(r["First Name"] || "").trim();
-      const last = String(r["Last Name"] || "").trim();
+    const cleanedCampers = camperRows
+      .filter((r) => {
+        const first = String(r["First Name"] || "").trim();
+        const last = String(r["Last Name"] || "").trim();
 
-      return (
-        first &&
-        last &&
-        first.toLowerCase() !== "first name" &&
-        last.toLowerCase() !== "last name"
-      );
-    })
-    .map((r) => ({
-      main_team: String(r["Main Team"] || "").trim(),
-      add_setters_team: String(r["Add Setters Team"] || "").trim(),
-      first_name: String(r["First Name"] || "").trim(),
-      last_name: String(r["Last Name"] || "").trim(),
-      primary_position: String(r["Primary Position"] || "").trim(),
-      secondary_position: String(r["Secondary Position"] || "").trim(),
-      age: String(r["Age"] || "").trim(),
-      grade: String(r["Grade in Fall"] || "").trim(),
-      club_team: String(r["Club Team"] || "").trim(),
-      camp: String(r["Camp"] || "").trim(),
-      friend_request: String(r["Friend Request"] || "").trim(),
-      friend_group: String(r["Friend Group"] || "").trim(),
-      tshirt: String(r["T-Shirt"] || "").trim(),
-      meal_add_on: String(r["Meal Add On"] || "").trim(),
-      pickup: String(r["Pickup?"] || "").trim(),
-camper_rank: Number(r["CAMPER RANK"] || 0),
+        return (
+          first &&
+          last &&
+          first.toLowerCase() !== "first name" &&
+          last.toLowerCase() !== "last name"
+        );
+      })
+      .map((r) => ({
+        main_team: String(r["Main Team"] || "").trim(),
+        add_setters_team: String(r["Add Setters Team"] || "").trim(),
+        first_name: String(r["First Name"] || "").trim(),
+        last_name: String(r["Last Name"] || "").trim(),
+        primary_position: String(r["Primary Position"] || "").trim(),
+        secondary_position: String(r["Secondary Position"] || "").trim(),
+        age: String(r["Age"] || "").trim(),
+        grade: String(r["Grade in Fall"] || "").trim(),
+        club_team: String(r["Club Team"] || "").trim(),
+        camp: String(r["Camp"] || "").trim(),
+        friend_request: String(r["Friend Request"] || "").trim(),
+        friend_group: String(r["Friend Group"] || "").trim(),
+        tshirt: String(r["T-Shirt"] || "").trim(),
+        meal_add_on: String(r["Meal Add On"] || "").trim(),
+        pickup: String(r["Pickup?"] || "").trim(),
+        camper_rank: Number(r["CAMPER RANK"] || 0),
+        jersey_number: String(r["Jersey #"] || "").trim(),
+        court_position: String(r["Court Position"] || "").trim(),
+      }));
 
-jersey_number: String(r["Jersey #"] || "").trim(),
+    const teamRows = XLSX.utils.sheet_to_json(teamSheet, { defval: "" });
 
-court_position: String(r["Court Position"] || "").trim(),    }));
+    const cleanedTeams = teamRows
+      .filter((r) => {
+        const teamName = String(r["Team Name"] || "").trim();
+        return teamName && teamName.toLowerCase() !== "team name";
+      })
+      .map((r) => {
+        const court = String(r["Court"] || "").trim();
 
-  const teamRows = XLSX.utils.sheet_to_json(teamSheet, { defval: "" });
+        return {
+          name: String(r["Team Name"] || "").trim(),
+          camp_id: String(r["Camp #"] || r["Camp ID"] || "").trim(),
+          coach_1: String(r["Coach 1"] || "").trim(),
+          coach_2: String(r["Coach 2"] || "").trim(),
+          coach_3: String(r["Coach 3"] || "").trim(),
+          coach: String(r["Coach 1"] || "").trim(),
+          assistant_coach: String(r["Coach 2"] || "").trim(),
+          court,
+          gym: String(r["Gym"] || r["Lead Coach of Gyms"] || "").trim(),
+          lead_coach_of_gym: String(r["Lead Coach of Gyms"] || "").trim(),
+          assignment_date: String(r["Date"] || "").trim(),
+          session_name: String(
+            r["Session"] || r["Date and Session"] || ""
+          ).trim(),
+          rank: Number(r["Rank"] || 0),
+        };
+      });
 
-  const cleanedTeams = teamRows
-  .filter((r) => {
-    const teamName = String(r["Team Name"] || "").trim();
-    return teamName && teamName.toLowerCase() !== "team name";
-  })
-  .map((r) => {
-    const court = String(r["Court"] || "").trim();
+    await supabase
+      .from("attendance")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase
+      .from("attendance_sessions")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase
+      .from("campers")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase
+      .from("teams")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
 
-    return {
-      name: String(r["Team Name"] || "").trim(),
-      camp_id: String(r["Camp #"] || r["Camp ID"] || "").trim(),
-      coach_1: String(r["Coach 1"] || "").trim(),
-      coach_2: String(r["Coach 2"] || "").trim(),
-      coach_3: String(r["Coach 3"] || "").trim(),
-      coach: String(r["Coach 1"] || "").trim(),
-      assistant_coach: String(r["Coach 2"] || "").trim(),
-      court,
-      gym: String(r["Gym"] || r["Lead Coach of Gyms"] || "").trim(),
-      lead_coach_of_gym: String(r["Lead Coach of Gyms"] || "").trim(),
-      assignment_date: String(r["Date"] || "").trim(),
-      session_name: String(r["Session"] || r["Date and Session"] || "").trim(),
-      rank: Number(r["Rank"] || 0),
-    };
-  });
+    const { error: camperError } = await supabase
+      .from("campers")
+      .insert(cleanedCampers);
 
-  // Clear previous camp
+    if (camperError) return alert(camperError.message);
 
-await supabase.from("attendance").delete().neq("id", 0);
-await supabase.from("attendance_sessions").delete().neq("id", 0);
-await supabase.from("campers").delete().neq("id", 0);
-await supabase.from("teams").delete().neq("id", 0);
+    const { error: teamError } = await supabase
+      .from("teams")
+      .insert(cleanedTeams);
 
-// Import campers
+    if (teamError) return alert(teamError.message);
 
-// Clear previous camp data before importing new file
-await supabase.from("attendance").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-await supabase.from("attendance_sessions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-await supabase.from("campers").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-await supabase.from("teams").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    const sessionMap = {};
 
-// Import fresh campers
-const { error: camperError } = await supabase
-  .from("campers")
-  .insert(cleanedCampers);
+    cleanedTeams.forEach((team) => {
+      const key = `${team.assignment_date || "No Date"}-${
+        team.session_name || "No Session"
+      }`;
 
-if (camperError) return alert(camperError.message);
+      if (!sessionMap[key]) {
+        sessionMap[key] = {
+          name: team.session_name || "Camp Session",
+          session_date: team.assignment_date || null,
+          session_time: team.session_name || null,
+          source_key: key,
+        };
+      }
+    });
 
-// Import fresh team assignments
-const { error: teamError } = await supabase
-  .from("teams")
-  .insert(cleanedTeams);
+    const cleanedSessions = Object.values(sessionMap);
 
-if (teamError) return alert(teamError.message);
+    if (cleanedSessions.length > 0) {
+      const { error: sessionError } = await supabase
+        .from("attendance_sessions")
+        .upsert(cleanedSessions, { onConflict: "source_key" });
 
-const sessionMap = {};
+      if (sessionError) return alert(sessionError.message);
+    }
 
-cleanedTeams.forEach((team) => {
-  const key = `${team.assignment_date || "No Date"}-${team.session_name || "No Session"}`;
+    alert(
+      `Imported ${cleanedCampers.length} campers and ${cleanedTeams.length} teams.`
+    );
 
-  if (!sessionMap[key]) {
-    sessionMap[key] = {
-      name: team.session_name || "Camp Session",
-      session_date: team.assignment_date || null,
-      session_time: team.session_name || null,
-      source_key: key,
-    };
+    await loadCampers();
+    await loadTeamDetails();
+    await loadSessions();
+
+    setAttendance({});
+    setSelectedSession("");
   }
-});
-
-const cleanedSessions = Object.values(sessionMap);
-
-if (cleanedSessions.length > 0) {
-  const { error: sessionError } = await supabase
-  .from("attendance_sessions")
-  .upsert(cleanedSessions, { onConflict: "source_key" });
-
-if (sessionError) return alert(sessionError.message);
-}    
-    
-alert(
-  `Imported ${cleanedCampers.length} campers and ${cleanedTeams.length} teams.`
-);
-
-await loadCampers();
-await loadTeamDetails();
-await loadSessions();
-
-setAttendance({});
-setSelectedSession("");
-}
 
   const filteredCampers = useMemo(() => {
     const q = search.toLowerCase();
@@ -374,7 +377,9 @@ setSelectedSession("");
       grouped[team].push(c);
     });
 
-    return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+    return Object.entries(grouped).sort(([a], [b]) =>
+      a.localeCompare(b)
+    );
   }, [campers]);
 
   const attendanceCampers = useMemo(() => {
@@ -501,18 +506,18 @@ setSelectedSession("");
         </header>
 
         {activeTab === "Dashboard" && (
-  <Dashboard
-    campers={campers}
-    teams={teams}
-    teamDetails={teamDetails}
-    attendance={attendance}
-    sessions={sessions}
-    presentCount={presentCount}
-    absentCount={absentCount}
-    lateCount={lateCount}
-    importExcel={importExcel}
-  />
-)}
+          <Dashboard
+            campers={campers}
+            teams={teams}
+            teamDetails={teamDetails}
+            attendance={attendance}
+            sessions={sessions}
+            presentCount={presentCount}
+            absentCount={absentCount}
+            lateCount={lateCount}
+            importExcel={importExcel}
+          />
+        )}
 
         {activeTab === "Campers" && (
           <Campers
@@ -533,45 +538,46 @@ setSelectedSession("");
             moveCamperTeam={moveCamperTeam}
             selectedTeamFromDashboard={selectedTeamFromDashboard}
             saveTeamInfo={saveTeamInfo}
+            checkInEntireTeam={checkInEntireTeam}
           />
         )}
 
         {activeTab === "Attendance" && (
-  <Attendance
-    sessions={sessions}
-    selectedSession={selectedSession}
-    setSelectedSession={setSelectedSession}
-    createSession={createSession}
-    teams={teams}
-    teamFilter={teamFilter}
-    setTeamFilter={setTeamFilter}
-    statusFilter={statusFilter}
-    setStatusFilter={setStatusFilter}
-    presentCount={presentCount}
-    absentCount={absentCount}
-    lateCount={lateCount}
-    attendanceCampers={attendanceCampers}
-    attendance={attendance}
-    markAttendance={markAttendance}
-    updateAttendanceNotes={updateAttendanceNotes}
-  />
-)}
+          <Attendance
+            sessions={sessions}
+            selectedSession={selectedSession}
+            setSelectedSession={setSelectedSession}
+            createSession={createSession}
+            teams={teams}
+            teamFilter={teamFilter}
+            setTeamFilter={setTeamFilter}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            presentCount={presentCount}
+            absentCount={absentCount}
+            lateCount={lateCount}
+            attendanceCampers={attendanceCampers}
+            attendance={attendance}
+            markAttendance={markAttendance}
+            updateAttendanceNotes={updateAttendanceNotes}
+          />
+        )}
 
         {activeTab === "Reports" && (
-  <Reports
-    sessions={sessions}
-    selectedSession={selectedSession}
-    setSelectedSession={setSelectedSession}
-    teams={teams}
-    teamFilter={teamFilter}
-    setTeamFilter={setTeamFilter}
-    attendanceCampers={attendanceCampers}
-    attendance={attendance}
-    presentCount={presentCount}
-    absentCount={absentCount}
-    lateCount={lateCount}
-  />
-)}
+          <Reports
+            sessions={sessions}
+            selectedSession={selectedSession}
+            setSelectedSession={setSelectedSession}
+            teams={teams}
+            teamFilter={teamFilter}
+            setTeamFilter={setTeamFilter}
+            attendanceCampers={attendanceCampers}
+            attendance={attendance}
+            presentCount={presentCount}
+            absentCount={absentCount}
+            lateCount={lateCount}
+          />
+        )}
 
         {selectedCamper && (
           <div className="drawer-overlay">
