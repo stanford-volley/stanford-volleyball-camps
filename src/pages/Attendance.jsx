@@ -1,3 +1,5 @@
+import { useMemo, useState } from "react";
+
 const CAMP_OPTIONS = [
   { value: "Camp 1", label: "CAMP 1: Beginner Day Camp" },
   { value: "Camp 2", label: "CAMP 2: Dig/Pass/Serve Day Camp" },
@@ -31,16 +33,40 @@ export default function Attendance({
   markAttendance,
   updateAttendanceNotes,
 }) {
+  const [attendanceSearch, setAttendanceSearch] = useState("");
+
   const visibleTeams = teams.filter(([team]) => {
     const info = teamDetails[team] || {};
     return !campFilter || info.camp_id === campFilter;
   });
 
-  const checkedOutCount = attendanceCampers.filter(
+  const searchedCampers = useMemo(() => {
+    const q = attendanceSearch.toLowerCase();
+
+    return attendanceCampers.filter((c) => {
+      const info = teamDetails[c.main_team] || {};
+
+      const text = `
+        ${c.first_name || ""}
+        ${c.last_name || ""}
+        ${c.main_team || ""}
+        ${c.primary_position || ""}
+        ${info.camp_id || ""}
+        ${info.court || ""}
+        ${info.coach_1 || ""}
+        ${info.coach_2 || ""}
+        ${info.coach_3 || ""}
+      `.toLowerCase();
+
+      return text.includes(q);
+    });
+  }, [attendanceCampers, attendanceSearch, teamDetails]);
+
+  const checkedOutCount = searchedCampers.filter(
     (c) => attendance[c.id]?.status === "Checked Out"
   ).length;
 
-  const notMarkedCount = attendanceCampers.filter((c) => !attendance[c.id]).length;
+  const notMarkedCount = searchedCampers.filter((c) => !attendance[c.id]).length;
 
   return (
     <>
@@ -94,25 +120,29 @@ export default function Attendance({
             <option value="Present">Present</option>
             <option value="Absent">Absent</option>
             <option value="Late">Late</option>
-            <option value="Checked Out">Checked Out</option>
             <option value="Not Marked">Not Marked</option>
           </select>
         </div>
+
+        <input
+          className="search"
+          placeholder="Search camper, team, court, coach..."
+          value={attendanceSearch}
+          onChange={(e) => setAttendanceSearch(e.target.value)}
+        />
       </section>
 
-      
-      
       <section className="stats attendance-stats">
-        <div><span>Total</span><strong>{attendanceCampers.length}</strong></div>
-        <div><span>Present</span><strong>{presentCount}</strong></div>
-        <div><span>Absent</span><strong>{absentCount}</strong></div>
-        <div><span>Late</span><strong>{lateCount}</strong></div>
+        <div><span>Total</span><strong>{searchedCampers.length}</strong></div>
+        <div><span>Present</span><strong>{searchedCampers.filter((c) => attendance[c.id]?.status === "Present").length}</strong></div>
+        <div><span>Absent</span><strong>{searchedCampers.filter((c) => attendance[c.id]?.status === "Absent").length}</strong></div>
+        <div><span>Late</span><strong>{searchedCampers.filter((c) => attendance[c.id]?.status === "Late").length}</strong></div>
         <div><span>Checked Out</span><strong>{checkedOutCount}</strong></div>
         <div><span>Not Marked</span><strong>{notMarkedCount}</strong></div>
       </section>
 
       <section className="attendance-list compact-attendance-list">
-        {attendanceCampers.map((c) => {
+        {searchedCampers.map((c) => {
           const info = teamDetails[c.main_team] || {};
           const status = attendance[c.id]?.status || "Not Marked";
 
@@ -129,33 +159,9 @@ export default function Attendance({
               </div>
 
               <div className="attendance-buttons compact-buttons">
-                <button
-                  className={status === "Present" ? "present active" : "present"}
-                  onClick={() => markAttendance(c.id, "Present")}
-                >
-                  Present
-                </button>
-
-                <button
-                  className={status === "Absent" ? "absent active" : "absent"}
-                  onClick={() => markAttendance(c.id, "Absent")}
-                >
-                  Absent
-                </button>
-
-                <button
-                  className={status === "Late" ? "late active" : "late"}
-                  onClick={() => markAttendance(c.id, "Late")}
-                >
-                  Late
-                </button>
-
-                <button
-                  className={status === "Checked Out" ? "checkout active" : "checkout"}
-                  onClick={() => markAttendance(c.id, "Checked Out")}
-                >
-                  Out
-                </button>
+                <button className={status === "Present" ? "present active" : "present"} onClick={() => markAttendance(c.id, "Present")}>Present</button>
+                <button className={status === "Absent" ? "absent active" : "absent"} onClick={() => markAttendance(c.id, "Absent")}>Absent</button>
+                <button className={status === "Late" ? "late active" : "late"} onClick={() => markAttendance(c.id, "Late")}>Late</button>
               </div>
 
               <textarea
