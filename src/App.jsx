@@ -9,7 +9,7 @@ import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
 import "./App.css";
 
-const tabs = ["Dashboard", "Campers", "Teams", "Coaches", "Attendance", "Reports"];
+const tabs = ["Dashboard", "Campers", "Teams", "Attendance", "Reports"];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("Dashboard");
