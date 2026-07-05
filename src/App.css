@@ -693,3 +693,25 @@ input {
 .muted {
   color: #777;
 }
+.team-card {
+  gap: 6px !important;
+  padding: 14px !important;
+}
+
+.team-card h2 {
+  margin-bottom: 6px !important;
+}
+
+.team-card p {
+  margin: 2px 0 !important;
+  line-height: 1.25 !important;
+}
+
+.team-card .mini-stats {
+  margin-top: 8px !important;
+  margin-bottom: 8px !important;
+}
+
+.team-card .primary-button {
+  margin-top: 8px !important;
+}
