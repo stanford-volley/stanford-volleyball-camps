@@ -1,6 +1,26 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+const CAMP_NAMES = {
+  "Camp 1": "Camp 1: Beginner Day Camp",
+  "Camp 2": "Camp 2: Dig/Pass/Serve Day Camp",
+  "Camp 3": "Camp 3: Setter Day Camp",
+  "Camp 4": "Camp 4: All Skills Day Camp",
+  "Camp 5": "Camp 5: Advanced Setter Day Camp",
+  "Camp 6": "Camp 6: Advanced Attacker Day Camp",
+  "Camp 7": "Camp 7: Advanced Setter Camp",
+  "Camp 8": "Camp 8: Individual Skills Camp",
+};
+
+function splitCoachNames(value) {
+  if (!value) return [];
+
+  return String(value)
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
 export default function TeamDetails({
   team,
   roster,
@@ -11,15 +31,19 @@ export default function TeamDetails({
   editCamper,
   moveCamperTeam,
   checkInEntireTeam,
-  checkOutEntireTeam,
 }) {
   const info = teamInfo || {};
 
   const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
   const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
   const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
-  const checkedOut = roster.filter((c) => attendance[c.id]?.status === "Checked Out").length;
-  const notMarked = roster.filter((c) => !attendance[c.id]).length;
+  const notMarked = roster.length - present - absent - late;
+
+  const coaches = [
+    ...splitCoachNames(info.coach_1 || info.coach),
+    ...splitCoachNames(info.coach_2 || info.assistant_coach),
+    ...splitCoachNames(info.coach_3),
+  ];
 
   function downloadRosterPDF() {
     const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
@@ -28,21 +52,24 @@ export default function TeamDetails({
     doc.text("Stanford Volleyball Camps", 40, 40);
 
     doc.setFontSize(14);
-    doc.text(`Team: ${team}`, 40, 65);
+    doc.text(`${team}`, 40, 65);
 
     doc.setFontSize(10);
-    doc.text(`Camp: ${info.camp_id || "—"}`, 40, 88);
-    doc.text(`Date: ${info.assignment_date || "—"}`, 140, 88);
-    doc.text(`Session: ${info.session_name || "—"}`, 260, 88);
-    doc.text(`Court: ${info.court || "—"}`, 430, 88);
+    doc.text(CAMP_NAMES[info.camp_id] || "Unassigned Camp", 40, 88);
+    doc.text(`Date: ${info.assignment_date || "—"}`, 40, 106);
+    doc.text(`Court: ${info.court || "—"}`, 200, 106);
+    doc.text(`Lead Coach: ${info.lead_coach_of_gym || "—"}`, 320, 106);
 
-    doc.text(`Lead Coach: ${info.lead_coach_of_gym || "—"}`, 40, 108);
-    doc.text(`Coach 1: ${info.coach_1 || info.coach || "—"}`, 40, 128);
-    doc.text(`Coach 2: ${info.coach_2 || info.assistant_coach || "—"}`, 230, 128);
-    doc.text(`Coach 3: ${info.coach_3 || "—"}`, 420, 128);
+    doc.text(`Coaches: ${coaches.length ? coaches.join(", ") : "—"}`, 40, 126);
+
+    doc.text(`Campers: ${roster.length}`, 40, 148);
+    doc.text(`Present: ${present}`, 140, 148);
+    doc.text(`Absent: ${absent}`, 230, 148);
+    doc.text(`Late: ${late}`, 320, 148);
+    doc.text(`Missing: ${notMarked}`, 390, 148);
 
     autoTable(doc, {
-      startY: 155,
+      startY: 168,
       head: [["Name", "Position", "Friend Group", "Attendance", "Notes"]],
       body: roster.map((c) => [
         `${c.first_name || ""} ${c.last_name || ""}`,
@@ -61,7 +88,7 @@ export default function TeamDetails({
 
   return (
     <>
-      <section className="panel">
+      <section className="panel team-detail-header">
         <button className="primary-button" onClick={onBack}>
           ← Back to Teams
         </button>
@@ -81,17 +108,6 @@ export default function TeamDetails({
           ✓ Check In Entire Team
         </button>
 
-        <button
-          className="primary-button"
-          onClick={async () => {
-            if (window.confirm(`Check out all ${roster.length} campers on ${team}?`)) {
-              await checkOutEntireTeam(team);
-            }
-          }}
-        >
-          Check Out Entire Team
-        </button>
-
         <h1>{team}</h1>
 
         <section className="stats">
@@ -99,8 +115,7 @@ export default function TeamDetails({
           <div><span>Present</span><strong>{present}</strong></div>
           <div><span>Absent</span><strong>{absent}</strong></div>
           <div><span>Late</span><strong>{late}</strong></div>
-          <div><span>Checked Out</span><strong>{checkedOut}</strong></div>
-          <div><span>Not Marked</span><strong>{notMarked}</strong></div>
+          <div><span>Missing</span><strong>{notMarked}</strong></div>
         </section>
       </section>
 
@@ -108,14 +123,19 @@ export default function TeamDetails({
         <h2>Coach + Court Assignment</h2>
 
         <div className="assignment-grid">
-          <p><strong>Camp:</strong> {info.camp_id || "—"}</p>
+          <p><strong>Camp:</strong> {CAMP_NAMES[info.camp_id] || "—"}</p>
           <p><strong>Date:</strong> {info.assignment_date || "—"}</p>
-          <p><strong>Session:</strong> {info.session_name || "—"}</p>
           <p><strong>Court:</strong> {info.court || "—"}</p>
           <p><strong>Lead Coach:</strong> {info.lead_coach_of_gym || "—"}</p>
-          <p><strong>Coach 1:</strong> {info.coach_1 || info.coach || "—"}</p>
-          <p><strong>Coach 2:</strong> {info.coach_2 || info.assistant_coach || "—"}</p>
-          <p><strong>Coach 3:</strong> {info.coach_3 || "—"}</p>
+
+          <div>
+            <strong>Coaches:</strong>
+            {coaches.length ? (
+              coaches.map((coach) => <div key={coach}>{coach}</div>)
+            ) : (
+              <div>—</div>
+            )}
+          </div>
         </div>
       </section>
 
