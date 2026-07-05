@@ -119,7 +119,28 @@ export default function App() {
     if (error) return alert(error.message);
     await loadSessions();
   }
+async function deleteSession(sessionId) {
+  if (!sessionId) {
+    alert("Select a session first.");
+    return;
+  }
 
+  if (!window.confirm("Delete this attendance session?")) return;
+
+  await supabase.from("attendance").delete().eq("session_id", sessionId);
+
+  const { error } = await supabase
+    .from("attendance_sessions")
+    .delete()
+    .eq("id", sessionId);
+
+  if (error) return alert(error.message);
+
+  setSelectedSession("");
+  setAttendance({});
+  await loadSessions();
+}
+  
   async function markAttendance(camperId, status) {
     if (!selectedSession) {
       alert("Create or select a session first.");
@@ -590,11 +611,12 @@ return matchesCamp && matchesTeam && matchesStatus;
             sessions={sessions}
             selectedSession={selectedSession}
             setSelectedSession={setSelectedSession}
+            deleteSession={deleteSession}
             createSession={createSession}
             teams={teams}
             teamDetails={teamDetails}
-campFilter={campFilter}
-setCampFilter={setCampFilter}
+            campFilter={campFilter}
+            setCampFilter={setCampFilter}
             teamFilter={teamFilter}
             setTeamFilter={setTeamFilter}
             statusFilter={statusFilter}
