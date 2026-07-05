@@ -1,3 +1,4 @@
+import Coaches from "./pages/Coaches";
 import Reports from "./pages/Reports";
 import Attendance from "./pages/Attendance";
 import Teams from "./pages/Teams";
@@ -8,7 +9,7 @@ import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
 import "./App.css";
 
-const tabs = ["Dashboard", "Campers", "Teams", "Attendance", "Reports"];
+const tabs = ["Dashboard", "Campers", "Teams", "Coaches", "Attendance", "Reports"];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("Dashboard");
@@ -610,7 +611,14 @@ async function checkOutEntireTeam(teamName) {
             checkOutEntireTeam={checkOutEntireTeam}
           />
         )}
-
+        
+{activeTab === "Coaches" && (
+  <Coaches
+    teams={teams}
+    teamDetails={teamDetails}
+    attendance={attendance}
+  />
+)}
         {activeTab === "Attendance" && (
           <Attendance
             sessions={sessions}
