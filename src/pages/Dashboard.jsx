@@ -1,5 +1,18 @@
 import { useMemo, useState } from "react";
 
+const GYMS = ["Maples", "APG", "Ford", "Rec"];
+
+function normalizeGym(info) {
+  const text = `${info.gym || ""} ${info.court || ""}`.toLowerCase();
+
+  if (text.includes("maples")) return "Maples";
+  if (text.includes("apg")) return "APG";
+  if (text.includes("ford")) return "Ford";
+  if (text.includes("rec") || text.includes("burnham")) return "Rec";
+
+  return "Other";
+}
+
 export default function Dashboard({
   campers,
   teams,
@@ -26,6 +39,7 @@ export default function Dashboard({
       const info = teamDetails[teamName] || {};
       const searchText = `
         ${teamName}
+        ${info.camp_id || ""}
         ${info.court || ""}
         ${info.gym || ""}
         ${info.lead_coach_of_gym || ""}
@@ -48,6 +62,14 @@ export default function Dashboard({
       return matchesSearch && matchesStatus;
     });
   }, [teams, teamDetails, attendance, dashboardSearch, dashboardStatus]);
+
+  const teamsByGym = GYMS.map((gym) => ({
+    gym,
+    teams: filteredTeams.filter(([teamName]) => {
+      const info = teamDetails[teamName] || {};
+      return normalizeGym(info) === gym;
+    }),
+  }));
 
   return (
     <>
@@ -95,41 +117,51 @@ export default function Dashboard({
       <section className="panel">
         <h2>Courts / Teams / Coaches</h2>
 
-        <div className="dashboard-team-grid">
-          {filteredTeams.map(([teamName, roster]) => {
-            const info = teamDetails[teamName] || {};
-            const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
-            const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
-            const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
-            const missing = roster.length - present - absent - late;
+        {teamsByGym.map((group) => (
+          <div className="gym-section" key={group.gym}>
+            <h3>{group.gym}</h3>
 
-            return (
-              <div className="dashboard-team-card" key={teamName}>
-                <h3>{teamName}</h3>
+            {group.teams.length === 0 ? (
+              <p className="muted">No teams assigned.</p>
+            ) : (
+              <div className="dashboard-team-grid">
+                {group.teams.map(([teamName, roster]) => {
+                  const info = teamDetails[teamName] || {};
+                  const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
+                  const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
+                  const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
+                  const checkedOut = roster.filter((c) => attendance[c.id]?.status === "Checked Out").length;
+                  const missing = roster.length - present - absent - late - checkedOut;
 
-                <p><strong>Camp:</strong> {info.camp_id || "—"}</p>
-                <p><strong>Date:</strong> {info.assignment_date || "—"}</p>
-                <p><strong>Session:</strong> {info.session_name || "—"}</p>
-                <p><strong>Court:</strong> {info.court || "—"}</p>
-                <p><strong>Lead Coach:</strong> {info.lead_coach_of_gym || "—"}</p>
-                <p><strong>Coach 1:</strong> {info.coach_1 || info.coach || "—"}</p>
-                <p><strong>Coach 2:</strong> {info.coach_2 || info.assistant_coach || "—"}</p>
-                <p><strong>Coach 3:</strong> {info.coach_3 || "—"}</p>
+                  return (
+                    <div className="dashboard-team-card" key={teamName}>
+                      <h3>{teamName}</h3>
 
-                <div className="mini-stats">
-                  <span>{present} Present</span>
-                  <span>{late} Late</span>
-                  <span>{absent} Absent</span>
-                  <span>{missing} Missing</span>
-                </div>
+                      <p><strong>Camp:</strong> {info.camp_id || "—"}</p>
+                      <p><strong>Session:</strong> {info.session_name || "—"}</p>
+                      <p><strong>Court:</strong> {info.court || "—"}</p>
+                      <p><strong>Lead Coach:</strong> {info.lead_coach_of_gym || "—"}</p>
+                      <p><strong>Coach 1:</strong> {info.coach_1 || info.coach || "—"}</p>
+                      <p><strong>Coach 2:</strong> {info.coach_2 || info.assistant_coach || "—"}</p>
+                      <p><strong>Coach 3:</strong> {info.coach_3 || "—"}</p>
 
-                <button className="primary-button" onClick={() => openTeam(teamName)}>
-                  Open Team
-                </button>
+                      <div className="mini-stats">
+                        <span>{present} Present</span>
+                        <span>{late} Late</span>
+                        <span>{absent} Absent</span>
+                        <span>{missing} Missing</span>
+                      </div>
+
+                      <button className="primary-button" onClick={() => openTeam(teamName)}>
+                        Open Team
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+            )}
+          </div>
+        ))}
       </section>
 
       <section className="panel">
