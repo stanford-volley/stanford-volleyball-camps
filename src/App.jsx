@@ -282,6 +282,31 @@ const { error: teamError } = await supabase
 
 if (teamError) return alert(teamError.message);
 
+const sessionMap = {};
+
+cleanedTeams.forEach((team) => {
+  const key = `${team.assignment_date || "No Date"}-${team.session_name || "No Session"}`;
+
+  if (!sessionMap[key]) {
+    sessionMap[key] = {
+      name: team.session_name || "Camp Session",
+      session_date: team.assignment_date || null,
+      session_time: team.session_name || null,
+      source_key: key,
+    };
+  }
+});
+
+const cleanedSessions = Object.values(sessionMap);
+
+if (cleanedSessions.length > 0) {
+  const { error: sessionError } = await supabase
+    .from("attendance_sessions")
+    .insert(cleanedSessions);
+
+  if (sessionError) return alert(sessionError.message);
+}    
+    
 alert(
   `Imported ${cleanedCampers.length} campers and ${cleanedTeams.length} teams.`
 );
