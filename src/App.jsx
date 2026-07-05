@@ -1,3 +1,4 @@
+import Attendance from "./pages/Attendance";
 import Teams from "./pages/Teams";
 import Campers from "./pages/Campers";
 import Dashboard from "./pages/Dashboard";
