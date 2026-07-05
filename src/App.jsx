@@ -216,13 +216,30 @@ async function checkOutEntireTeam(teamName) {
     updated_at: new Date().toISOString(),
   }));
 
-  const { error } = await supabase.from("attendance").upsert(updates, {
-    onConflict: "camper_id,session_id",
+  const { error } = await supabase
+    .from("attendance")
+    .upsert(updates, {
+      onConflict: "camper_id,session_id",
+      ignoreDuplicates: false,
+    });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  setAttendance((prev) => {
+    const next = { ...prev };
+
+    roster.forEach((c) => {
+      next[c.id] = {
+        status: "Checked Out",
+        notes: prev[c.id]?.notes || "",
+      };
+    });
+
+    return next;
   });
-
-  if (error) return alert(error.message);
-
-  await loadAttendance(selectedSession);
 }
   async function importExcel(e) {
     const file = e.target.files[0];
