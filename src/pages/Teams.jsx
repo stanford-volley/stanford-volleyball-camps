@@ -33,6 +33,7 @@ const [selectedTeam, setSelectedTeam] = useState(
         editCamper={editCamper}
         moveCamperTeam={moveCamperTeam}
         saveTeamInfo={saveTeamInfo}
+        checkInEntireTeam={checkInEntireTeam}
         onBack={() => setSelectedTeam(null)}
       />
     );
