@@ -449,16 +449,18 @@ setSelectedSession("");
         </header>
 
         {activeTab === "Dashboard" && (
-          <Dashboard
-            campers={campers}
-            teams={teams}
-            sessions={sessions}
-            presentCount={presentCount}
-            absentCount={absentCount}
-            lateCount={lateCount}
-            importExcel={importExcel}
-          />
-        )}
+  <Dashboard
+    campers={campers}
+    teams={teams}
+    teamDetails={teamDetails}
+    attendance={attendance}
+    sessions={sessions}
+    presentCount={presentCount}
+    absentCount={absentCount}
+    lateCount={lateCount}
+    importExcel={importExcel}
+  />
+)}
 
         {activeTab === "Campers" && (
           <Campers
