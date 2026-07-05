@@ -11,6 +11,7 @@ export default function TeamDetails({
   editCamper,
   moveCamperTeam,
   checkInEntireTeam,
+  checkOutEntireTeam,
 }) {
   const info = teamInfo || {};
 
@@ -79,6 +80,16 @@ export default function TeamDetails({
           ✓ Check In Entire Team
         </button>
 
+        <button
+  className="primary-button"
+  onClick={async () => {
+    if (window.confirm(`Check out all ${roster.length} campers on ${team}?`)) {
+      await checkOutEntireTeam(team);
+    }
+  }}
+>
+  Check Out Entire Team
+</button>
         <h1>{team}</h1>
 
         <section className="stats">
