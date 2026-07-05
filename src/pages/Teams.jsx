@@ -10,6 +10,7 @@ export default function Teams({
   saveTeamInfo,
   selectedTeamFromDashboard,
   checkInEntireTeam,
+  checkOutEntireTeam,
 }) {
   const [search, setSearch] = useState("");
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -40,6 +41,7 @@ export default function Teams({
         moveCamperTeam={moveCamperTeam}
         saveTeamInfo={saveTeamInfo}
         checkInEntireTeam={checkInEntireTeam}
+        checkOutEntireTeam={checkOutEntireTeam}
         onBack={() => setSelectedTeam(null)}
       />
     );
@@ -66,17 +68,9 @@ export default function Teams({
             <div className="team-card" key={team}>
               <h2>{team}</h2>
 
-              <p>
-                <strong>{roster.length}</strong> Campers
-              </p>
-
-              <p>
-                <strong>Court:</strong> {info.court || "—"}
-              </p>
-
-              <p>
-                <strong>Coach 1:</strong> {info.coach_1 || info.coach || "—"}
-              </p>
+              <p><strong>{roster.length}</strong> Campers</p>
+              <p><strong>Court:</strong> {info.court || "—"}</p>
+              <p><strong>Coach 1:</strong> {info.coach_1 || info.coach || "—"}</p>
 
               <button
                 className="primary-button"
