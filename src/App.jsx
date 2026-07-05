@@ -304,10 +304,10 @@ const cleanedSessions = Object.values(sessionMap);
 
 if (cleanedSessions.length > 0) {
   const { error: sessionError } = await supabase
-    .from("attendance_sessions")
-    .insert(cleanedSessions);
+  .from("attendance_sessions")
+  .upsert(cleanedSessions, { onConflict: "source_key" });
 
-  if (sessionError) return alert(sessionError.message);
+if (sessionError) return alert(sessionError.message);
 }    
     
 alert(
