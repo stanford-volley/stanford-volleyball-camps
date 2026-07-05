@@ -13,6 +13,16 @@ function normalizeGym(info) {
   return "Other";
 }
 
+function teamStatus(roster, attendance) {
+  const total = roster.length;
+  const marked = roster.filter((c) => attendance[c.id]).length;
+
+  if (total === 0) return "empty";
+  if (marked === total) return "complete";
+  if (marked > 0) return "partial";
+  return "missing";
+}
+
 export default function Dashboard({
   campers,
   teams,
@@ -28,7 +38,10 @@ export default function Dashboard({
   const [dashboardStatus, setDashboardStatus] = useState("");
 
   const totalCampers = campers.length;
-  const notMarked = totalCampers - presentCount - absentCount - lateCount;
+  const checkedOutCount = campers.filter(
+    (c) => attendance[c.id]?.status === "Checked Out"
+  ).length;
+  const notMarked = totalCampers - presentCount - absentCount - lateCount - checkedOutCount;
 
   function openTeam(teamName) {
     window.dispatchEvent(new CustomEvent("openTeam", { detail: teamName }));
@@ -37,6 +50,8 @@ export default function Dashboard({
   const filteredTeams = useMemo(() => {
     return teams.filter(([teamName, roster]) => {
       const info = teamDetails[teamName] || {};
+      const status = teamStatus(roster, attendance);
+
       const searchText = `
         ${teamName}
         ${info.camp_id || ""}
@@ -51,13 +66,7 @@ export default function Dashboard({
       `.toLowerCase();
 
       const matchesSearch = searchText.includes(dashboardSearch.toLowerCase());
-
-      const matchesStatus =
-        !dashboardStatus ||
-        roster.some((c) => {
-          if (dashboardStatus === "Not Marked") return !attendance[c.id];
-          return attendance[c.id]?.status === dashboardStatus;
-        });
+      const matchesStatus = !dashboardStatus || status === dashboardStatus;
 
       return matchesSearch && matchesStatus;
     });
@@ -83,6 +92,7 @@ export default function Dashboard({
         <div><span>Present</span><strong>{presentCount}</strong></div>
         <div><span>Late</span><strong>{lateCount}</strong></div>
         <div><span>Absent</span><strong>{absentCount}</strong></div>
+        <div><span>Checked Out</span><strong>{checkedOutCount}</strong></div>
         <div><span>Not Marked</span><strong>{notMarked}</strong></div>
       </section>
 
@@ -106,11 +116,10 @@ export default function Dashboard({
           value={dashboardStatus}
           onChange={(e) => setDashboardStatus(e.target.value)}
         >
-          <option value="">All Statuses</option>
-          <option value="Present">Has Present Camper</option>
-          <option value="Absent">Has Absent Camper</option>
-          <option value="Late">Has Late Camper</option>
-          <option value="Not Marked">Has Not Marked Camper</option>
+          <option value="">All Team Statuses</option>
+          <option value="complete">Complete</option>
+          <option value="partial">In Progress</option>
+          <option value="missing">Not Started</option>
         </select>
       </section>
 
@@ -132,10 +141,20 @@ export default function Dashboard({
                   const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
                   const checkedOut = roster.filter((c) => attendance[c.id]?.status === "Checked Out").length;
                   const missing = roster.length - present - absent - late - checkedOut;
+                  const status = teamStatus(roster, attendance);
 
                   return (
-                    <div className="dashboard-team-card" key={teamName}>
-                      <h3>{teamName}</h3>
+                    <div className={`dashboard-team-card team-status-${status}`} key={teamName}>
+                      <div className="team-card-top">
+                        <h3>{teamName}</h3>
+                        <span className={`team-status-pill ${status}`}>
+                          {status === "complete"
+                            ? "Complete"
+                            : status === "partial"
+                            ? "In Progress"
+                            : "Not Started"}
+                        </span>
+                      </div>
 
                       <p><strong>Camp:</strong> {info.camp_id || "—"}</p>
                       <p><strong>Session:</strong> {info.session_name || "—"}</p>
@@ -149,7 +168,9 @@ export default function Dashboard({
                         <span>{present} Present</span>
                         <span>{late} Late</span>
                         <span>{absent} Absent</span>
+                        <span>{checkedOut} Out</span>
                         <span>{missing} Missing</span>
+                        <span>{roster.length} Total</span>
                       </div>
 
                       <button className="primary-button" onClick={() => openTeam(teamName)}>
