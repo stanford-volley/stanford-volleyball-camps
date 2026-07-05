@@ -642,6 +642,9 @@ async function checkOutEntireTeam(teamName) {
             selectedSession={selectedSession}
             setSelectedSession={setSelectedSession}
             teams={teams}
+            teamDetails={teamDetails}
+            campFilter={campFilter}
+            setCampFilter={setCampFilter}
             teamFilter={teamFilter}
             setTeamFilter={setTeamFilter}
             attendanceCampers={attendanceCampers}
