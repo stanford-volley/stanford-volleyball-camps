@@ -1147,3 +1147,55 @@ input {
     grid-template-columns: 1fr;
   }
 }
+
+.checkin-line-panel {
+  background: #f7f7f7;
+  border: 1px solid #e2e2e2;
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.checkin-line-panel p {
+  margin: 4px 0 0;
+  color: #555;
+  font-size: 14px;
+}
+
+.checkin-line-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.line-button {
+  border: 1px solid #ccc;
+  background: white;
+  color: #222;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.line-button span {
+  background: #eee;
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 12px;
+}
+
+.line-button.active {
+  background: #8c1515;
+  color: white;
+  border-color: #8c1515;
+}
+
+.line-button.active span {
+  background: rgba(255, 255, 255, 0.22);
+  color: white;
+}
