@@ -1,273 +1,248 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-const CAMP_NAMES = {
-  "Camp 1": "Camp 1: Beginner Day Camp",
-  "Camp 2": "Camp 2: Dig/Pass/Serve Day Camp",
-  "Camp 3": "Camp 3: Setter Day Camp",
-  "Camp 4": "Camp 4: All Skills Day Camp",
-  "Camp 5": "Camp 5: Advanced Setter Day Camp",
-  "Camp 6": "Camp 6: Advanced Attacker Day Camp",
-  "Camp 7": "Camp 7: Advanced Setter Camp",
-  "Camp 8": "Camp 8: Individual Skills Camp",
-};
+const CAMP_OPTIONS = [
+  { value: "Camp 1", label: "CAMP 1: Beginner Day Camp" },
+  { value: "Camp 2", label: "CAMP 2: Dig/Pass/Serve Day Camp" },
+  { value: "Camp 3", label: "CAMP 3: Setter Day Camp" },
+  { value: "Camp 4", label: "CAMP 4: All Skills Day Camp" },
+  { value: "Camp 5", label: "CAMP 5: Advanced Setter Day Camp" },
+  { value: "Camp 6", label: "CAMP 6: Advanced Attacker Day Camp" },
+  { value: "Camp 7", label: "CAMP 7: Advanced Setter Camp" },
+  { value: "Camp 8", label: "CAMP 8: Individual Skills Camp" },
+];
 
-function splitCoachNames(value) {
-  if (!value) return [];
-
-  return String(value)
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean);
+function campName(value) {
+  return CAMP_OPTIONS.find((c) => c.value === value)?.label || value || "All Camps";
 }
 
-function safeFileName(value) {
-  return String(value || "team")
-    .replace(/[^a-z0-9]/gi, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .toLowerCase();
-}
-
-export default function TeamDetails({
-  team,
-  roster,
-  attendance,
-  teams,
-  teamInfo,
-  onBack,
-  editCamper,
-  moveCamperTeam,
-  checkInEntireTeam,
+export default function Reports({
+  sessions = [],
+  selectedSession = "",
+  setSelectedSession = () => {},
+  teams = [],
+  teamDetails = {},
+  campFilter = "",
+  setCampFilter = () => {},
+  teamFilter = "",
+  setTeamFilter = () => {},
+  attendanceCampers = [],
+  attendance = {},
+  presentCount = 0,
+  absentCount = 0,
+  lateCount = 0,
 }) {
-  const info = teamInfo || {};
+  const visibleTeams = teams.filter(([team]) => {
+    const info = teamDetails[team] || {};
+    return !campFilter || info.camp_id === campFilter;
+  });
 
-  const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
-  const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
-  const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
-  const checkedOut = roster.filter((c) => attendance[c.id]?.status === "Checked Out").length;
-  const missing = roster.length - present - absent - late - checkedOut;
+  const checkedOutCount = attendanceCampers.filter(
+    (c) => attendance[c.id]?.status === "Checked Out"
+  ).length;
 
-  const coaches = [
-    ...splitCoachNames(info.coach_1 || info.coach),
-    ...splitCoachNames(info.coach_2 || info.assistant_coach),
-    ...splitCoachNames(info.coach_3),
-  ];
+  const notMarkedCount = attendanceCampers.filter((c) => !attendance[c.id]).length;
 
-  function addHeader(doc, title, subtitle) {
+  function downloadAttendancePDF() {
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
+
     doc.setFontSize(18);
     doc.text("Stanford Volleyball Camps", 40, 40);
 
-    doc.setFontSize(14);
-    doc.text(title, 40, 65);
-
-    if (subtitle) {
-      doc.setFontSize(10);
-      doc.text(subtitle, 40, 84);
-    }
-  }
-
-  function downloadRosterPDF() {
-    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
-
-    addHeader(doc, `${team} Roster`, CAMP_NAMES[info.camp_id] || "Unassigned Camp");
+    doc.setFontSize(13);
+    doc.text("Attendance Report", 40, 62);
 
     doc.setFontSize(10);
-    doc.text(`Date: ${info.assignment_date || "—"}`, 40, 106);
-    doc.text(`Court: ${info.court || "—"}`, 200, 106);
-    doc.text(`Lead Coach: ${info.lead_coach_of_gym || "—"}`, 320, 106);
-    doc.text(`Coaches: ${coaches.length ? coaches.join(", ") : "—"}`, 40, 126);
-
-    doc.text(`Campers: ${roster.length}`, 40, 148);
-    doc.text(`Present: ${present}`, 140, 148);
-    doc.text(`Absent: ${absent}`, 230, 148);
-    doc.text(`Late: ${late}`, 320, 148);
-    doc.text(`Out: ${checkedOut}`, 390, 148);
-    doc.text(`Missing: ${missing}`, 450, 148);
+    doc.text(`Camp: ${campName(campFilter)}`, 40, 84);
+    doc.text(`Team: ${teamFilter || "All Teams"}`, 40, 100);
+    doc.text(`Total: ${attendanceCampers.length}`, 40, 118);
+    doc.text(`Present: ${presentCount}`, 120, 118);
+    doc.text(`Absent: ${absentCount}`, 210, 118);
+    doc.text(`Late: ${lateCount}`, 300, 118);
+    doc.text(`Checked Out: ${checkedOutCount}`, 370, 118);
+    doc.text(`Not Marked: ${notMarkedCount}`, 470, 118);
 
     autoTable(doc, {
-      startY: 168,
-      head: [["Name", "Position", "Friend Group", "Attendance", "Notes"]],
-      body: roster.map((c) => [
-        `${c.first_name || ""} ${c.last_name || ""}`,
-        c.primary_position || "",
-        c.friend_group || "",
-        attendance[c.id]?.status || "Not Marked",
-        attendance[c.id]?.notes || "",
-      ]),
+      startY: 140,
+      head: [["Name", "Camp", "Team", "Court", "Coach", "Status", "Notes"]],
+      body: attendanceCampers.map((c) => {
+        const info = teamDetails[c.main_team] || {};
+
+        return [
+          `${c.first_name || ""} ${c.last_name || ""}`,
+          info.camp_id || "",
+          c.main_team || "",
+          info.court || "",
+          info.coach_1 || "",
+          attendance[c.id]?.status || "Not Marked",
+          attendance[c.id]?.notes || "",
+        ];
+      }),
+      styles: { fontSize: 7, cellPadding: 3, overflow: "linebreak" },
+      headStyles: { fillColor: [140, 21, 21], textColor: 255 },
+      margin: { left: 30, right: 30 },
+    });
+
+    doc.save("attendance-report.pdf");
+  }
+
+  function downloadMissingPDF() {
+    const missing = attendanceCampers.filter((c) => !attendance[c.id]);
+
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
+
+    doc.setFontSize(18);
+    doc.text("Stanford Volleyball Camps", 40, 40);
+
+    doc.setFontSize(13);
+    doc.text("Missing / Not Marked Campers", 40, 62);
+
+    doc.setFontSize(10);
+    doc.text(`Camp: ${campName(campFilter)}`, 40, 84);
+    doc.text(`Team: ${teamFilter || "All Teams"}`, 40, 100);
+    doc.text(`Missing: ${missing.length}`, 40, 118);
+
+    autoTable(doc, {
+      startY: 140,
+      head: [["Name", "Camp", "Team", "Court", "Coach", "Position"]],
+      body: missing.map((c) => {
+        const info = teamDetails[c.main_team] || {};
+
+        return [
+          `${c.first_name || ""} ${c.last_name || ""}`,
+          info.camp_id || "",
+          c.main_team || "",
+          info.court || "",
+          info.coach_1 || "",
+          c.primary_position || "",
+        ];
+      }),
       styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak" },
       headStyles: { fillColor: [140, 21, 21], textColor: 255 },
       margin: { left: 40, right: 40 },
     });
 
-    doc.save(`${safeFileName(team)}-roster.pdf`);
-  }
-
-  function downloadTeamPacketPDF() {
-    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
-
-    addHeader(doc, `${team} Team Packet`, CAMP_NAMES[info.camp_id] || "Unassigned Camp");
-
-    doc.setFontSize(11);
-    doc.text(`Court: ${info.court || "—"}`, 40, 108);
-    doc.text(`Date: ${info.assignment_date || "—"}`, 220, 108);
-    doc.text(`Lead Coach: ${info.lead_coach_of_gym || "—"}`, 40, 128);
-
-    doc.setFontSize(12);
-    doc.text("Coaches", 40, 158);
-
-    doc.setFontSize(10);
-    if (coaches.length) {
-      coaches.forEach((coach, index) => {
-        doc.text(`${index + 1}. ${coach}`, 40, 178 + index * 16);
-      });
-    } else {
-      doc.text("—", 40, 178);
-    }
-
-    const rosterStartY = coaches.length ? 190 + coaches.length * 16 : 205;
-
-    autoTable(doc, {
-      startY: rosterStartY,
-      head: [["#", "Camper", "Position", "Present", "Late", "Absent", "Notes"]],
-      body: roster.map((c, index) => [
-        String(index + 1),
-        `${c.first_name || ""} ${c.last_name || ""}`,
-        c.primary_position || "",
-        "☐",
-        "☐",
-        "☐",
-        "",
-      ]),
-      styles: { fontSize: 8, cellPadding: 4, minCellHeight: 18 },
-      headStyles: { fillColor: [140, 21, 21], textColor: 255 },
-      columnStyles: {
-        0: { cellWidth: 25 },
-        1: { cellWidth: 140 },
-        2: { cellWidth: 70 },
-        3: { cellWidth: 50, halign: "center" },
-        4: { cellWidth: 45, halign: "center" },
-        5: { cellWidth: 50, halign: "center" },
-        6: { cellWidth: 145 },
-      },
-      margin: { left: 40, right: 40 },
-    });
-
-    let y = doc.lastAutoTable.finalY + 24;
-    if (y > 650) {
-      doc.addPage();
-      y = 50;
-    }
-
-    doc.setFontSize(12);
-    doc.text("Team Notes", 40, y);
-    doc.setDrawColor(180);
-    doc.rect(40, y + 12, 532, 90);
-
-    doc.save(`${safeFileName(team)}-team-packet.pdf`);
+    doc.save("missing-campers-report.pdf");
   }
 
   return (
     <>
-      <section className="panel team-detail-header">
-        <button className="primary-button" onClick={onBack}>
-          ← Back to Teams
+      <section className="panel report-controls">
+        <h2>Reports</h2>
+
+        <select value={selectedSession} onChange={(e) => setSelectedSession(e.target.value)}>
+          <option value="">Select Session</option>
+          {sessions.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name} {s.session_date ? `— ${s.session_date}` : ""}
+            </option>
+          ))}
+        </select>
+
+        <select value={campFilter} onChange={(e) => setCampFilter(e.target.value)}>
+          <option value="">All Camps</option>
+          {CAMP_OPTIONS.map((camp) => (
+            <option key={camp.value} value={camp.value}>
+              {camp.label}
+            </option>
+          ))}
+        </select>
+
+        <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
+          <option value="">All Teams</option>
+          {visibleTeams.map(([team]) => (
+            <option key={team} value={team}>
+              {team}
+            </option>
+          ))}
+        </select>
+
+        <button className="primary-button" onClick={downloadAttendancePDF}>
+          Download Attendance PDF
         </button>
 
-        <button className="primary-button" onClick={downloadRosterPDF}>
-          Download Team Roster PDF
+        <button className="primary-button" onClick={downloadMissingPDF}>
+          Download Missing PDF
         </button>
-
-        <button className="primary-button" onClick={downloadTeamPacketPDF}>
-          Download Team Packet PDF
-        </button>
-
-        <button
-          className="primary-button"
-          onClick={async () => {
-            if (window.confirm(`Check in all ${roster.length} campers on ${team}?`)) {
-              await checkInEntireTeam(team);
-            }
-          }}
-        >
-          ✓ Check In Entire Team
-        </button>
-
-        <h1>{team}</h1>
-
-        <section className="stats">
-          <div><span>Campers</span><strong>{roster.length}</strong></div>
-          <div><span>Present</span><strong>{present}</strong></div>
-          <div><span>Absent</span><strong>{absent}</strong></div>
-          <div><span>Late</span><strong>{late}</strong></div>
-          <div><span>Out</span><strong>{checkedOut}</strong></div>
-          <div><span>Missing</span><strong>{missing}</strong></div>
-        </section>
       </section>
 
-      <section className="panel team-edit-panel">
-        <h2>Coach + Court Assignment</h2>
-
-        <div className="assignment-grid">
-          <p><strong>Camp:</strong> {CAMP_NAMES[info.camp_id] || "—"}</p>
-          <p><strong>Date:</strong> {info.assignment_date || "—"}</p>
-          <p><strong>Court:</strong> {info.court || "—"}</p>
-          <p><strong>Lead Coach:</strong> {info.lead_coach_of_gym || "—"}</p>
-
-          <div>
-            <strong>Coaches:</strong>
-            {coaches.length ? (
-              coaches.map((coach) => <div key={coach}>{coach}</div>)
-            ) : (
-              <div>—</div>
-            )}
-          </div>
-        </div>
+      <section className="stats report-stats">
+        <div><span>Total</span><strong>{attendanceCampers.length}</strong></div>
+        <div><span>Present</span><strong>{presentCount}</strong></div>
+        <div><span>Absent</span><strong>{absentCount}</strong></div>
+        <div><span>Late</span><strong>{lateCount}</strong></div>
+        <div><span>Checked Out</span><strong>{checkedOutCount}</strong></div>
+        <div><span>Not Marked</span><strong>{notMarkedCount}</strong></div>
       </section>
 
       <section className="panel">
-        <h2>Team Roster</h2>
+        <h2>Missing / Not Marked</h2>
 
         <table className="campers-table">
           <thead>
             <tr>
               <th>Name</th>
+              <th>Camp</th>
+              <th>Team</th>
+              <th>Court</th>
+              <th>Coach</th>
               <th>Position</th>
-              <th>Friend Group</th>
-              <th>Attendance</th>
-              <th>Notes</th>
-              <th>Move Team</th>
-              <th>Actions</th>
             </tr>
           </thead>
 
           <tbody>
-            {roster.map((c) => (
-              <tr key={c.id}>
-                <td>{c.first_name} {c.last_name}</td>
-                <td>{c.primary_position || "-"}</td>
-                <td>{c.friend_group || "-"}</td>
-                <td>{attendance[c.id]?.status || "Not Marked"}</td>
-                <td>{attendance[c.id]?.notes || ""}</td>
-                <td>
-                  <select
-                    value={c.main_team || ""}
-                    onChange={(e) => moveCamperTeam(c, e.target.value)}
-                  >
-                    {teams.map(([teamName]) => (
-                      <option key={teamName} value={teamName}>
-                        {teamName}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td>
-                  <button className="small-button" onClick={() => editCamper(c)}>
-                    Edit
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {attendanceCampers
+              .filter((c) => !attendance[c.id])
+              .map((c) => {
+                const info = teamDetails[c.main_team] || {};
+
+                return (
+                  <tr key={c.id}>
+                    <td>{c.first_name} {c.last_name}</td>
+                    <td>{info.camp_id || "-"}</td>
+                    <td>{c.main_team || "-"}</td>
+                    <td>{info.court || "-"}</td>
+                    <td>{info.coach_1 || "-"}</td>
+                    <td>{c.primary_position || "-"}</td>
+                  </tr>
+                );
+              })}
+          </tbody>
+        </table>
+      </section>
+
+      <section className="panel">
+        <h2>Full Attendance Report</h2>
+
+        <table className="campers-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Camp</th>
+              <th>Team</th>
+              <th>Court</th>
+              <th>Coach</th>
+              <th>Status</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {attendanceCampers.map((c) => {
+              const info = teamDetails[c.main_team] || {};
+
+              return (
+                <tr key={c.id}>
+                  <td>{c.first_name} {c.last_name}</td>
+                  <td>{info.camp_id || "-"}</td>
+                  <td>{c.main_team || "-"}</td>
+                  <td>{info.court || "-"}</td>
+                  <td>{info.coach_1 || "-"}</td>
+                  <td>{attendance[c.id]?.status || "Not Marked"}</td>
+                  <td>{attendance[c.id]?.notes || ""}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </section>
