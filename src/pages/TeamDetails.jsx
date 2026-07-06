@@ -176,16 +176,7 @@ export default function TeamDetails({
             Download Team Packet PDF
           </button>
 
-          <button
-            className="primary-button"
-            onClick={async () => {
-              if (window.confirm(`Check in all ${roster.length} campers on ${team}?`)) {
-                await checkInEntireTeam(team);
-              }
-            }}
-          >
-            ✓ Check In Entire Team
-          </button>
+          
         </div>
 
         <h1>{team}</h1>
