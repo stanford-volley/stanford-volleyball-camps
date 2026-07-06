@@ -1039,20 +1039,3 @@ input {
 .report-controls {
   grid-template-columns: 1fr 1fr 1fr 220px 220px;
 }
-
-/* Reports PDF button layout */
-.report-controls {
-  grid-template-columns: 1fr 1fr 1fr 180px 160px 150px 180px !important;
-}
-
-@media (max-width: 1200px) {
-  .report-controls {
-    grid-template-columns: 1fr 1fr !important;
-  }
-}
-
-@media (max-width: 700px) {
-  .report-controls {
-    grid-template-columns: 1fr !important;
-  }
-}
