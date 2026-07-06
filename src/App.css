@@ -1040,27 +1040,19 @@ input {
   grid-template-columns: 1fr 1fr 1fr 220px 220px;
 }
 
-/* Drawer attendance actions */
-.drawer-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 12px;
+/* Reports PDF button layout */
+.report-controls {
+  grid-template-columns: 1fr 1fr 1fr 180px 160px 150px 180px !important;
 }
 
-.drawer-actions button {
-  border: 0;
-  border-radius: 10px;
-  padding: 10px;
-  font-weight: 800;
-  cursor: pointer;
+@media (max-width: 1200px) {
+  .report-controls {
+    grid-template-columns: 1fr 1fr !important;
+  }
 }
 
-.checkout {
-  background: #1d4ed8;
-  color: white;
-}
-
-.checkout.active {
-  background: #1e40af;
+@media (max-width: 700px) {
+  .report-controls {
+    grid-template-columns: 1fr !important;
+  }
 }
