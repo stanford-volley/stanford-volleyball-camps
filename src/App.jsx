@@ -594,6 +594,8 @@ export default function App() {
             saveTeamInfo={saveTeamInfo}
             checkInEntireTeam={checkInEntireTeam}
             checkOutEntireTeam={checkOutEntireTeam}
+            markAttendance={markAttendance}
+            updateAttendanceNotes={updateAttendanceNotes}
           />
         )}
 
