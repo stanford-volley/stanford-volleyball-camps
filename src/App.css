@@ -1039,3 +1039,28 @@ input {
 .report-controls {
   grid-template-columns: 1fr 1fr 1fr 220px 220px;
 }
+
+/* Drawer attendance actions */
+.drawer-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.drawer-actions button {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.checkout {
+  background: #1d4ed8;
+  color: white;
+}
+
+.checkout.active {
+  background: #1e40af;
+}
