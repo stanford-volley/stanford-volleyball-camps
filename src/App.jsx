@@ -10,7 +10,7 @@ import "./App.css";
 
 const tabs = ["Dashboard", "Campers", "Teams", "Attendance", "Reports"];
 
-export default function App() {
+export default function App() 
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [selectedTeamFromDashboard, setSelectedTeamFromDashboard] = useState(null);
   const [campers, setCampers] = useState([]);
