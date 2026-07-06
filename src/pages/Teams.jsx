@@ -26,6 +26,8 @@ export default function Teams({
   selectedTeamFromDashboard,
   checkInEntireTeam,
   checkOutEntireTeam,
+  markAttendance,
+  updateAttendanceNotes,
 }) {
   const [search, setSearch] = useState("");
   const [campFilter, setCampFilter] = useState("");
@@ -83,6 +85,8 @@ export default function Teams({
         saveTeamInfo={saveTeamInfo}
         checkInEntireTeam={checkInEntireTeam}
         checkOutEntireTeam={checkOutEntireTeam}
+        markAttendance={markAttendance}
+        updateAttendanceNotes={updateAttendanceNotes}
         onBack={() => setSelectedTeam(null)}
       />
     );
