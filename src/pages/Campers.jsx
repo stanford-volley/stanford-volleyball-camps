@@ -10,7 +10,7 @@ export default function Campers({
       <section className="panel">
         <h2>Campers</h2>
 
-        <inputexport default function Campers({
+        export default function Campers({
   search,
   setSearch,
   filteredCampers,
