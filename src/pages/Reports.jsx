@@ -17,20 +17,20 @@ function campName(value) {
 }
 
 export default function Reports({
-  sessions = [],
-  selectedSession = "",
-  setSelectedSession = () => {},
-  teams = [],
-  teamDetails = {},
-  campFilter = "",
-  setCampFilter = () => {},
-  teamFilter = "",
-  setTeamFilter = () => {},
-  attendanceCampers = [],
-  attendance = {},
-  presentCount = 0,
-  absentCount = 0,
-  lateCount = 0,
+  sessions,
+  selectedSession,
+  setSelectedSession,
+  teams,
+  teamDetails,
+  campFilter,
+  setCampFilter,
+  teamFilter,
+  setTeamFilter,
+  attendanceCampers,
+  attendance,
+  presentCount,
+  absentCount,
+  lateCount,
 }) {
   const visibleTeams = teams.filter(([team]) => {
     const info = teamDetails[team] || {};
