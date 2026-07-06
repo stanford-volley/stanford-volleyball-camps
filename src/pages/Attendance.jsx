@@ -1,15 +1,115 @@
 import { useMemo, useState } from "react";
 
 const CAMP_OPTIONS = [
-  { value: "Camp 1", label: "CAMP 1: Beginner Day Camp" },
-  { value: "Camp 2", label: "CAMP 2: Dig/Pass/Serve Day Camp" },
-  { value: "Camp 3", label: "CAMP 3: Setter Day Camp" },
-  { value: "Camp 4", label: "CAMP 4: All Skills Day Camp" },
-  { value: "Camp 5", label: "CAMP 5: Advanced Setter Day Camp" },
-  { value: "Camp 6", label: "CAMP 6: Advanced Attacker Day Camp" },
-  { value: "Camp 7", label: "CAMP 7: Advanced Setter Camp" },
-  { value: "Camp 8", label: "CAMP 8: Individual Skills Camp" },
+  { value: "Camp 1", label: "CAMP 1: Beginner Day Camp", lineCount: 2 },
+  { value: "Camp 2", label: "CAMP 2: Dig/Pass/Serve Day Camp", lineCount: 4 },
+  { value: "Camp 3", label: "CAMP 3: Setter Day Camp", lineCount: 2 },
+  { value: "Camp 4", label: "CAMP 4: All Skills Day Camp", lineCount: 4 },
+  { value: "Camp 5", label: "CAMP 5: Advanced Setter Day Camp", lineCount: 2 },
+  { value: "Camp 6", label: "CAMP 6: Advanced Attacker Day Camp", lineCount: 4 },
+  { value: "Camp 7", label: "CAMP 7: Advanced Setter Camp", lineCount: 2 },
+  { value: "Camp 8", label: "CAMP 8: Individual Skills Camp", lineCount: 4 },
 ];
+
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+function getLastInitial(camper) {
+  const last = String(camper.last_name || "").trim().toUpperCase();
+  const firstLetter = last[0] || "";
+
+  return LETTERS.includes(firstLetter) ? firstLetter : "Z";
+}
+
+function rangeLabel(startIndex, endIndex) {
+  const start = LETTERS[startIndex];
+  const end = LETTERS[endIndex];
+
+  return start === end ? start : `${start}-${end}`;
+}
+
+function getRangeTotal(prefixCounts, startIndex, endIndex) {
+  const before = startIndex === 0 ? 0 : prefixCounts[startIndex - 1];
+  return prefixCounts[endIndex] - before;
+}
+
+function getCombinations(items, choose) {
+  if (choose === 0) return [[]];
+  if (items.length < choose) return [];
+
+  const [first, ...rest] = items;
+  const withFirst = getCombinations(rest, choose - 1).map((combo) => [
+    first,
+    ...combo,
+  ]);
+  const withoutFirst = getCombinations(rest, choose);
+
+  return [...withFirst, ...withoutFirst];
+}
+
+function buildLineRanges(campersForCamp, lineCount) {
+  if (!campersForCamp.length || !lineCount) return [];
+
+  const counts = LETTERS.map(
+    (letter) => campersForCamp.filter((c) => getLastInitial(c) === letter).length
+  );
+
+  const prefixCounts = [];
+  counts.reduce((sum, count, index) => {
+    prefixCounts[index] = sum + count;
+    return prefixCounts[index];
+  }, 0);
+
+  const total = campersForCamp.length;
+  const possibleCuts = Array.from({ length: 25 }, (_, index) => index);
+  const combinations = getCombinations(possibleCuts, lineCount - 1);
+
+  let bestRanges = null;
+  let bestScore = Infinity;
+
+  combinations.forEach((cuts) => {
+    const endpoints = [...cuts, 25];
+    let start = 0;
+    const ranges = endpoints.map((end) => {
+      const range = {
+        start,
+        end,
+        count: getRangeTotal(prefixCounts, start, end),
+      };
+      start = end + 1;
+      return range;
+    });
+
+    const target = total / lineCount;
+    const variance = ranges.reduce(
+      (score, range) => score + Math.pow(range.count - target, 2),
+      0
+    );
+
+    const emptyPenalty = ranges.filter((range) => range.count === 0).length * 1000;
+    const score = variance + emptyPenalty;
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestRanges = ranges;
+    }
+  });
+
+  return (bestRanges || []).map((range, index) => ({
+    id: `${range.start}-${range.end}`,
+    label: rangeLabel(range.start, range.end),
+    startLetter: LETTERS[range.start],
+    endLetter: LETTERS[range.end],
+    count: range.count,
+    lineNumber: index + 1,
+  }));
+}
+
+function camperIsInRange(camper, range) {
+  if (!range) return true;
+
+  const initial = getLastInitial(camper);
+  return initial >= range.startLetter && initial <= range.endLetter;
+}
 
 export default function Attendance({
   sessions,
@@ -31,11 +131,30 @@ export default function Attendance({
   updateAttendanceNotes,
 }) {
   const [attendanceSearch, setAttendanceSearch] = useState("");
+  const [selectedLineId, setSelectedLineId] = useState("");
+
+  const selectedCamp = CAMP_OPTIONS.find((camp) => camp.value === campFilter);
 
   const visibleTeams = teams.filter(([team]) => {
     const info = teamDetails[team] || {};
     return !campFilter || info.camp_id === campFilter;
   });
+
+  const campersInSelectedCamp = useMemo(() => {
+    if (!campFilter) return [];
+
+    return attendanceCampers.filter((c) => {
+      const info = teamDetails[c.main_team] || {};
+      return info.camp_id === campFilter;
+    });
+  }, [attendanceCampers, campFilter, teamDetails]);
+
+  const lineRanges = useMemo(() => {
+    if (!selectedCamp) return [];
+    return buildLineRanges(campersInSelectedCamp, selectedCamp.lineCount);
+  }, [campersInSelectedCamp, selectedCamp]);
+
+  const selectedLine = lineRanges.find((range) => range.id === selectedLineId);
 
   const searchedCampers = useMemo(() => {
     const q = attendanceSearch.toLowerCase();
@@ -55,9 +174,9 @@ export default function Attendance({
         ${info.coach_3 || ""}
       `.toLowerCase();
 
-      return text.includes(q);
+      return text.includes(q) && camperIsInRange(c, selectedLine);
     });
-  }, [attendanceCampers, attendanceSearch, teamDetails]);
+  }, [attendanceCampers, attendanceSearch, teamDetails, selectedLine]);
 
   const total = searchedCampers.length;
   const presentCount = searchedCampers.filter((c) => attendance[c.id]?.status === "Present").length;
@@ -65,6 +184,12 @@ export default function Attendance({
   const lateCount = searchedCampers.filter((c) => attendance[c.id]?.status === "Late").length;
   const checkedOutCount = searchedCampers.filter((c) => attendance[c.id]?.status === "Checked Out").length;
   const notMarkedCount = searchedCampers.filter((c) => !attendance[c.id]).length;
+
+  function handleCampChange(value) {
+    setCampFilter(value);
+    setTeamFilter("");
+    setSelectedLineId("");
+  }
 
   return (
     <>
@@ -91,7 +216,7 @@ export default function Attendance({
         </div>
 
         <div className="attendance-filters">
-          <select value={campFilter} onChange={(e) => setCampFilter(e.target.value)}>
+          <select value={campFilter} onChange={(e) => handleCampChange(e.target.value)}>
             <option value="">All Camps</option>
             {CAMP_OPTIONS.map((camp) => (
               <option key={camp.value} value={camp.value}>
@@ -118,6 +243,37 @@ export default function Attendance({
             <option value="Not Marked">Not Marked</option>
           </select>
         </div>
+
+        {selectedCamp && (
+          <div className="checkin-line-panel">
+            <div>
+              <strong>Check-In Lines</strong>
+              <p>
+                {selectedCamp.label} • {selectedCamp.lineCount} lines split by last name
+              </p>
+            </div>
+
+            <div className="checkin-line-buttons">
+              <button
+                className={!selectedLineId ? "line-button active" : "line-button"}
+                onClick={() => setSelectedLineId("")}
+              >
+                All Lines
+              </button>
+
+              {lineRanges.map((range) => (
+                <button
+                  key={range.id}
+                  className={selectedLineId === range.id ? "line-button active" : "line-button"}
+                  onClick={() => setSelectedLineId(range.id)}
+                >
+                  Line {range.lineNumber}: {range.label}
+                  <span>{range.count}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <input
           className="search"
