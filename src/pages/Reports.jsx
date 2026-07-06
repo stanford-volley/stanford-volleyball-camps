@@ -16,31 +16,6 @@ function campName(value) {
   return CAMP_OPTIONS.find((c) => c.value === value)?.label || value || "All Camps";
 }
 
-function splitCoachNames(value) {
-  if (!value) return [];
-
-  return String(value)
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean);
-}
-
-function coachList(info) {
-  return [
-    ...splitCoachNames(info.coach_1 || info.coach),
-    ...splitCoachNames(info.coach_2 || info.assistant_coach),
-    ...splitCoachNames(info.coach_3),
-  ];
-}
-
-function safeFileName(value) {
-  return String(value || "report")
-    .replace(/[^a-z0-9-_]+/gi, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .toLowerCase();
-}
-
 export default function Reports({
   sessions = [],
   selectedSession = "",
@@ -67,15 +42,6 @@ export default function Reports({
   ).length;
 
   const notMarkedCount = attendanceCampers.filter((c) => !attendance[c.id]).length;
-
-  function reportTitle() {
-    const session = sessions.find((s) => s.id === selectedSession);
-    const parts = [campName(campFilter), teamFilter || "All Teams"];
-
-    if (session?.name) parts.push(session.name);
-
-    return parts.filter(Boolean).join(" — ");
-  }
 
   function downloadAttendancePDF() {
     const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
@@ -117,7 +83,7 @@ export default function Reports({
       margin: { left: 30, right: 30 },
     });
 
-    doc.save(`${safeFileName(reportTitle())}-attendance-report.pdf`);
+    doc.save("attendance-report.pdf");
   }
 
   function downloadMissingPDF() {
@@ -156,86 +122,7 @@ export default function Reports({
       margin: { left: 40, right: 40 },
     });
 
-    doc.save(`${safeFileName(reportTitle())}-missing-campers.pdf`);
-  }
-
-  function downloadRosterPDF() {
-    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
-
-    doc.setFontSize(18);
-    doc.text("Stanford Volleyball Camps", 40, 40);
-
-    doc.setFontSize(13);
-    doc.text("Roster Report", 40, 62);
-
-    doc.setFontSize(10);
-    doc.text(`Camp: ${campName(campFilter)}`, 40, 84);
-    doc.text(`Team: ${teamFilter || "All Teams"}`, 40, 100);
-    doc.text(`Campers: ${attendanceCampers.length}`, 40, 118);
-
-    autoTable(doc, {
-      startY: 140,
-      head: [["Name", "Camp", "Team", "Court", "Coach", "Position", "Friend Group"]],
-      body: attendanceCampers.map((c) => {
-        const info = teamDetails[c.main_team] || {};
-        return [
-          `${c.first_name || ""} ${c.last_name || ""}`,
-          info.camp_id || "",
-          c.main_team || "",
-          info.court || "",
-          coachList(info).join(", ") || "",
-          c.primary_position || "",
-          c.friend_group || "",
-        ];
-      }),
-      styles: { fontSize: 7, cellPadding: 3, overflow: "linebreak" },
-      headStyles: { fillColor: [140, 21, 21], textColor: 255 },
-      margin: { left: 30, right: 30 },
-    });
-
-    doc.save(`${safeFileName(reportTitle())}-roster.pdf`);
-  }
-
-  function downloadBlankAttendancePDF() {
-    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
-
-    doc.setFontSize(18);
-    doc.text("Stanford Volleyball Camps", 40, 40);
-
-    doc.setFontSize(13);
-    doc.text("Blank Attendance Sheet", 40, 62);
-
-    doc.setFontSize(10);
-    doc.text(`Camp: ${campName(campFilter)}`, 40, 84);
-    doc.text(`Team: ${teamFilter || "All Teams"}`, 40, 100);
-    doc.text(`Campers: ${attendanceCampers.length}`, 40, 118);
-
-    autoTable(doc, {
-      startY: 140,
-      head: [["Name", "Team", "Court", "Present", "Absent", "Late", "Notes"]],
-      body: attendanceCampers.map((c) => {
-        const info = teamDetails[c.main_team] || {};
-        return [
-          `${c.first_name || ""} ${c.last_name || ""}`,
-          c.main_team || "",
-          info.court || "",
-          "□",
-          "□",
-          "□",
-          "",
-        ];
-      }),
-      styles: { fontSize: 8, cellPadding: 5, overflow: "linebreak" },
-      headStyles: { fillColor: [140, 21, 21], textColor: 255 },
-      columnStyles: {
-        3: { halign: "center", cellWidth: 44 },
-        4: { halign: "center", cellWidth: 44 },
-        5: { halign: "center", cellWidth: 44 },
-      },
-      margin: { left: 35, right: 35 },
-    });
-
-    doc.save(`${safeFileName(reportTitle())}-blank-attendance-sheet.pdf`);
+    doc.save("missing-campers-report.pdf");
   }
 
   return (
@@ -271,19 +158,11 @@ export default function Reports({
         </select>
 
         <button className="primary-button" onClick={downloadAttendancePDF}>
-          Attendance PDF
+          Download Attendance PDF
         </button>
 
         <button className="primary-button" onClick={downloadMissingPDF}>
-          Missing PDF
-        </button>
-
-        <button className="primary-button" onClick={downloadRosterPDF}>
-          Roster PDF
-        </button>
-
-        <button className="primary-button" onClick={downloadBlankAttendancePDF}>
-          Blank Sheet PDF
+          Download Missing PDF
         </button>
       </section>
 
