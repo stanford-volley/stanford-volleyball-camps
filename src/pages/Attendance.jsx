@@ -11,6 +11,19 @@ const CAMP_OPTIONS = [
   { value: "Camp 8", label: "CAMP 8: Individual Skills Camp", lineCount: 4 },
 ];
 
+
+function formatSessionDate(dateValue) {
+  if (!dateValue) return "";
+  const [year, month, day] = String(dateValue).split("-");
+  if (!year || !month || !day) return String(dateValue);
+  return `${Number(month)}/${Number(day)}/${year}`;
+}
+
+function sessionDisplayName(session) {
+  const dateLabel = formatSessionDate(session?.session_date);
+  return dateLabel ? `${dateLabel} - ${session.name}` : session?.name || "Camp Session";
+}
+
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 function getLastInitial(camper) {
@@ -197,22 +210,26 @@ export default function Attendance({
       <section className="panel attendance-page-header">
         <h2>Attendance</h2>
 
-        <div className="attendance-toolbar">
-          <button className="primary-button" onClick={createSession}>
-            + Create Session
-          </button>
-
-          <select value={selectedSession} onChange={(e) => setSelectedSession(e.target.value)}>
+        <div className="attendance-session-row">
+          <select
+            className="session-select-prominent"
+            value={selectedSession}
+            onChange={(e) => setSelectedSession(e.target.value)}
+          >
             <option value="">Select Session</option>
             {sessions.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name} {s.session_date ? `— ${s.session_date}` : ""}
+                {sessionDisplayName(s)}
               </option>
             ))}
           </select>
 
-          <button className="danger-button" onClick={() => deleteSession(selectedSession)}>
-            Delete Session
+          <button className="secondary-small-button" onClick={createSession}>
+            + Session
+          </button>
+
+          <button className="danger-small-button" onClick={() => deleteSession(selectedSession)}>
+            Delete
           </button>
         </div>
 
@@ -267,15 +284,17 @@ export default function Attendance({
           </select>
         </div>
 
-        {selectedCamp && (
-          <div className="checkin-line-panel">
-            <div>
-              <strong>Check-In Lines</strong>
-              <p>
-                {selectedCamp.label} • {selectedCamp.lineCount} lines split by last name
-              </p>
-            </div>
+        <div className="checkin-line-panel">
+          <div>
+            <strong>Check-In Lines</strong>
+            {selectedCamp ? (
+              <p>{selectedCamp.label} • {selectedCamp.lineCount} lines split by last name</p>
+            ) : (
+              <p>Select a camp above to show the automatic A-Z line buttons.</p>
+            )}
+          </div>
 
+          {selectedCamp && (
             <div className="checkin-line-buttons">
               <button
                 className={!selectedLineId ? "line-button active" : "line-button"}
@@ -295,8 +314,8 @@ export default function Attendance({
                 </button>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <input
           className="search"
