@@ -1,5 +1,6 @@
 import Reports from "./pages/Reports";
 import Attendance from "./pages/Attendance";
+import CheckIn from "./pages/CheckIn";
 import Teams from "./pages/Teams";
 import Campers from "./pages/Campers";
 import Dashboard from "./pages/Dashboard";
@@ -8,7 +9,7 @@ import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
 import "./App.css";
 
-const tabs = ["Dashboard", "Campers", "Teams", "Attendance", "Reports"];
+const tabs = ["Dashboard", "Check-In", "Campers", "Teams", "Attendance", "Reports"];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("Dashboard");
@@ -573,12 +574,23 @@ export default function App() {
           />
         )}
 
+        {activeTab === "Check-In" && (
+          <CheckIn
+            campers={campers}
+            teamDetails={teamDetails}
+            attendance={attendance}
+            markAttendance={markAttendance}
+            updateAttendanceNotes={updateAttendanceNotes}
+          />
+        )}
+
         {activeTab === "Campers" && (
           <Campers
             search={search}
             setSearch={setSearch}
             filteredCampers={filteredCampers}
             attendance={attendance}
+            teamDetails={teamDetails}
             editCamper={editCamper}
           />
         )}
