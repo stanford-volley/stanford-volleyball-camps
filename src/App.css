@@ -1317,3 +1317,45 @@ input {
     white-space: normal;
   }
 }
+
+.block-session-panel {
+  background: #fff7f7;
+  border: 1px solid #f0d1d1;
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.block-session-panel p {
+  margin: 3px 0 0;
+  color: #555;
+  font-size: 14px;
+}
+
+.block-session-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.block-session-buttons .line-button {
+  min-width: 150px;
+}
+
+@media (max-width: 900px) {
+  .block-session-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .block-session-buttons {
+    justify-content: stretch;
+  }
+
+  .block-session-buttons .line-button {
+    width: 100%;
+  }
+}
