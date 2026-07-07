@@ -1359,3 +1359,100 @@ input {
     width: 100%;
   }
 }
+
+/* Session UI polish */
+.attendance-session-row {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) 120px 100px;
+  gap: 10px;
+  align-items: center;
+}
+
+.session-select-prominent {
+  width: 100%;
+  min-height: 46px;
+  border: 2px solid #8c1515;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-size: 17px;
+  font-weight: 800;
+  background: white;
+  color: #222;
+}
+
+.secondary-small-button,
+.danger-small-button {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 900;
+  cursor: pointer;
+  min-height: 42px;
+}
+
+.secondary-small-button {
+  background: #8c1515;
+  color: white;
+}
+
+.danger-small-button {
+  background: #555;
+  color: white;
+}
+
+.checkin-line-panel {
+  background: #fff7f7;
+  border: 2px solid #8c1515;
+}
+
+.checkin-line-panel strong {
+  color: #8c1515;
+  font-size: 18px;
+}
+
+.checkin-line-buttons .line-button {
+  min-height: 46px;
+  padding: 10px 16px;
+  font-size: 16px;
+}
+
+.checkin-session-panel {
+  background: #f7f7f7;
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.checkin-session-panel strong {
+  color: #8c1515;
+}
+
+.checkin-session-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.checkin-session-buttons .line-button {
+  border-radius: 12px;
+  max-width: 280px;
+  white-space: normal;
+  text-align: left;
+}
+
+@media (max-width: 900px) {
+  .attendance-session-row {
+    grid-template-columns: 1fr;
+  }
+
+  .session-select-prominent {
+    font-size: 15px;
+  }
+
+  .checkin-session-buttons .line-button {
+    width: 100%;
+    max-width: none;
+  }
+}
