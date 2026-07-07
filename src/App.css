@@ -1456,3 +1456,24 @@ input {
     max-width: none;
   }
 }
+
+.block-line-groups {
+  display: grid;
+  gap: 12px;
+}
+
+.line-camp-group {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(140, 21, 21, 0.18);
+}
+
+.line-camp-group > strong {
+  color: #8c1515;
+  font-size: 14px;
+}
+
+.line-camp-group .checkin-line-buttons {
+  margin-top: 0;
+}
