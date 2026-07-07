@@ -117,6 +117,7 @@ export default function Attendance({
   setSelectedSession,
   deleteSession,
   createSession,
+  createBlockSessions,
   teams,
   teamDetails,
   campFilter,
@@ -213,6 +214,28 @@ export default function Attendance({
           <button className="danger-button" onClick={() => deleteSession(selectedSession)}>
             Delete Session
           </button>
+        </div>
+
+        <div className="block-session-panel">
+          <div>
+            <strong>Pre-Made Block Sessions</strong>
+            <p>Create all sessions for a block without deleting previous attendance.</p>
+          </div>
+
+          <div className="block-session-buttons">
+            <button className="line-button" onClick={() => createBlockSessions("Block 1")}>
+              Block 1 • 4 Sessions
+            </button>
+            <button className="line-button" onClick={() => createBlockSessions("Block 2")}>
+              Block 2 • 6 Sessions
+            </button>
+            <button className="line-button" onClick={() => createBlockSessions("Block 3")}>
+              Block 3 • 8 Sessions
+            </button>
+            <button className="line-button" onClick={() => createBlockSessions("Block 4")}>
+              Block 4 • 9 Sessions
+            </button>
+          </div>
         </div>
 
         <div className="attendance-filters">
