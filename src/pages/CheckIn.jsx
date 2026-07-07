@@ -1,5 +1,17 @@
 import { useMemo, useState } from "react";
 
+function formatSessionDate(dateValue) {
+  if (!dateValue) return "";
+  const [year, month, day] = String(dateValue).split("-");
+  if (!year || !month || !day) return String(dateValue);
+  return `${Number(month)}/${Number(day)}/${year}`;
+}
+
+function sessionDisplayName(session) {
+  const dateLabel = formatSessionDate(session?.session_date);
+  return dateLabel ? `${dateLabel} - ${session.name}` : session?.name || "Camp Session";
+}
+
 function normalizeGym(teamInfo) {
   const text = `${teamInfo?.gym || ""} ${teamInfo?.court || ""}`.toLowerCase();
 
@@ -27,6 +39,9 @@ function confirmedAbsentNotes(existingNotes) {
 export default function CheckIn({
   campers,
   teamDetails,
+  sessions,
+  selectedSession,
+  setSelectedSession,
   attendance,
   markAttendance,
   updateAttendanceNotes,
@@ -84,6 +99,21 @@ export default function CheckIn({
           This page only shows campers marked <strong>Absent</strong>. Use it to
           confirm true absences or quickly change a camper to Present.
         </p>
+
+        <div className="checkin-session-panel">
+          <strong>Session:</strong>
+          <div className="checkin-session-buttons">
+            {sessions.map((session) => (
+              <button
+                key={session.id}
+                className={selectedSession === session.id ? "line-button active" : "line-button"}
+                onClick={() => setSelectedSession(session.id)}
+              >
+                {sessionDisplayName(session)}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="checkin-summary">
           <div>
