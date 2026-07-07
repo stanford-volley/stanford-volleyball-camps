@@ -121,6 +121,40 @@ export default function App() {
   }, [selectedSession]);
 
   useEffect(() => {
+    const channel = supabase
+      .channel("attendance-sessions-live")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "attendance_sessions",
+        },
+        async () => {
+          const refreshedSessions = await loadSessions();
+
+          if (
+            selectedSession &&
+            refreshedSessions.length &&
+            !refreshedSessions.some((session) => session.id === selectedSession)
+          ) {
+            setSelectedSession(refreshedSessions[0].id);
+          }
+
+          if (!refreshedSessions.length) {
+            setSelectedSession("");
+            setAttendance({});
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedSession]);
+
+  useEffect(() => {
     if (!selectedSession) return;
 
     const channel = supabase
