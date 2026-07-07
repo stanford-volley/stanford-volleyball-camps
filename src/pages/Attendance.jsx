@@ -11,6 +11,12 @@ const CAMP_OPTIONS = [
   { value: "Camp 8", label: "CAMP 8: Individual Skills Camp", lineCount: 4 },
 ];
 
+const BLOCK_CAMP_MAP = {
+  "Block 1": ["Camp 1", "Camp 2"],
+  "Block 2": ["Camp 3", "Camp 4"],
+  "Block 3": ["Camp 5", "Camp 6"],
+  "Block 4": ["Camp 7", "Camp 8"],
+};
 
 function formatSessionDate(dateValue) {
   if (!dateValue) return "";
@@ -24,19 +30,32 @@ function sessionDisplayName(session) {
   return dateLabel ? `${dateLabel} - ${session.name}` : session?.name || "Camp Session";
 }
 
+function getSelectedSessionObject(sessions, selectedSession) {
+  return sessions.find((session) => session.id === selectedSession) || null;
+}
+
+function getBlockFromSession(session) {
+  const name = String(session?.name || "");
+  const match = name.match(/Block\s*[1-4]/i);
+  if (!match) return "";
+  return match[0].replace(/block/i, "Block").replace(/\s+/, " ");
+}
+
+function campLabel(campValue) {
+  return CAMP_OPTIONS.find((camp) => camp.value === campValue)?.label || campValue;
+}
+
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 function getLastInitial(camper) {
   const last = String(camper.last_name || "").trim().toUpperCase();
   const firstLetter = last[0] || "";
-
   return LETTERS.includes(firstLetter) ? firstLetter : "Z";
 }
 
 function rangeLabel(startIndex, endIndex) {
   const start = LETTERS[startIndex];
   const end = LETTERS[endIndex];
-
   return start === end ? start : `${start}-${end}`;
 }
 
@@ -119,9 +138,13 @@ function buildLineRanges(campersForCamp, lineCount) {
 
 function camperIsInRange(camper, range) {
   if (!range) return true;
-
   const initial = getLastInitial(camper);
   return initial >= range.startLetter && initial <= range.endLetter;
+}
+
+function camperCampValue(camper, teamDetails) {
+  const info = teamDetails[camper.main_team] || {};
+  return info.camp_id || "";
 }
 
 export default function Attendance({
@@ -145,36 +168,72 @@ export default function Attendance({
   updateAttendanceNotes,
 }) {
   const [attendanceSearch, setAttendanceSearch] = useState("");
-  const [selectedLineId, setSelectedLineId] = useState("");
+  const [selectedLineKey, setSelectedLineKey] = useState("");
 
-  const selectedCamp = CAMP_OPTIONS.find((camp) => camp.value === campFilter);
+  const selectedSessionObject = getSelectedSessionObject(sessions, selectedSession);
+  const selectedBlock = getBlockFromSession(selectedSessionObject);
+  const blockCampValues = BLOCK_CAMP_MAP[selectedBlock] || [];
+
+  const effectiveCampValues = campFilter
+    ? [campFilter]
+    : blockCampValues.length
+    ? blockCampValues
+    : [];
 
   const visibleTeams = teams.filter(([team]) => {
     const info = teamDetails[team] || {};
-    return !campFilter || info.camp_id === campFilter;
+    if (campFilter) return info.camp_id === campFilter;
+    if (blockCampValues.length) return blockCampValues.includes(info.camp_id);
+    return true;
   });
 
-  const campersInSelectedCamp = useMemo(() => {
-    if (!campFilter) return [];
+  const lineCampValues = campFilter
+    ? [campFilter]
+    : blockCampValues.length
+    ? blockCampValues
+    : [];
 
-    return attendanceCampers.filter((c) => {
-      const info = teamDetails[c.main_team] || {};
-      return info.camp_id === campFilter;
-    });
-  }, [attendanceCampers, campFilter, teamDetails]);
+  const lineGroups = useMemo(() => {
+    return lineCampValues
+      .map((campValue) => {
+        const camp = CAMP_OPTIONS.find((option) => option.value === campValue);
+        if (!camp) return null;
 
-  const lineRanges = useMemo(() => {
-    if (!selectedCamp) return [];
-    return buildLineRanges(campersInSelectedCamp, selectedCamp.lineCount);
-  }, [campersInSelectedCamp, selectedCamp]);
+        const campersForCamp = attendanceCampers.filter((camper) => {
+          return camperCampValue(camper, teamDetails) === campValue;
+        });
 
-  const selectedLine = lineRanges.find((range) => range.id === selectedLineId);
+        return {
+          camp,
+          ranges: buildLineRanges(campersForCamp, camp.lineCount),
+          total: campersForCamp.length,
+        };
+      })
+      .filter(Boolean);
+  }, [lineCampValues, attendanceCampers, teamDetails]);
+
+  const selectedLine = useMemo(() => {
+    if (!selectedLineKey) return null;
+    const [campValue, rangeId] = selectedLineKey.split("::");
+    const group = lineGroups.find((item) => item.camp.value === campValue);
+    const range = group?.ranges.find((item) => item.id === rangeId);
+    return group && range ? { campValue, range } : null;
+  }, [selectedLineKey, lineGroups]);
 
   const searchedCampers = useMemo(() => {
     const q = attendanceSearch.toLowerCase();
 
     return attendanceCampers.filter((c) => {
       const info = teamDetails[c.main_team] || {};
+      const campValue = info.camp_id || "";
+
+      const matchesBlockOrCamp = effectiveCampValues.length
+        ? effectiveCampValues.includes(campValue)
+        : true;
+
+      const matchesLine = selectedLine
+        ? campValue === selectedLine.campValue && camperIsInRange(c, selectedLine.range)
+        : true;
 
       const text = `
         ${c.first_name || ""}
@@ -188,9 +247,9 @@ export default function Attendance({
         ${info.coach_3 || ""}
       `.toLowerCase();
 
-      return text.includes(q) && camperIsInRange(c, selectedLine);
+      return matchesBlockOrCamp && matchesLine && text.includes(q);
     });
-  }, [attendanceCampers, attendanceSearch, teamDetails, selectedLine]);
+  }, [attendanceCampers, attendanceSearch, teamDetails, effectiveCampValues, selectedLine]);
 
   const total = searchedCampers.length;
   const presentCount = searchedCampers.filter((c) => attendance[c.id]?.status === "Present").length;
@@ -202,7 +261,21 @@ export default function Attendance({
   function handleCampChange(value) {
     setCampFilter(value);
     setTeamFilter("");
-    setSelectedLineId("");
+    setSelectedLineKey("");
+  }
+
+  function selectLine(campValue, rangeId) {
+    setCampFilter(campValue);
+    setTeamFilter("");
+    setSelectedLineKey(`${campValue}::${rangeId}`);
+  }
+
+  function clearLineFilter() {
+    setSelectedLineKey("");
+    if (blockCampValues.length) {
+      setCampFilter("");
+      setTeamFilter("");
+    }
   }
 
   return (
@@ -214,7 +287,12 @@ export default function Attendance({
           <select
             className="session-select-prominent"
             value={selectedSession}
-            onChange={(e) => setSelectedSession(e.target.value)}
+            onChange={(e) => {
+              setSelectedSession(e.target.value);
+              setSelectedLineKey("");
+              setCampFilter("");
+              setTeamFilter("");
+            }}
           >
             <option value="">Select Session</option>
             {sessions.map((s) => (
@@ -257,7 +335,7 @@ export default function Attendance({
 
         <div className="attendance-filters">
           <select value={campFilter} onChange={(e) => handleCampChange(e.target.value)}>
-            <option value="">All Camps</option>
+            <option value="">{selectedBlock ? `${selectedBlock} Camps` : "All Camps"}</option>
             {CAMP_OPTIONS.map((camp) => (
               <option key={camp.value} value={camp.value}>
                 {camp.label}
@@ -287,34 +365,46 @@ export default function Attendance({
         <div className="checkin-line-panel">
           <div>
             <strong>Check-In Lines</strong>
-            {selectedCamp ? (
-              <p>{selectedCamp.label} • {selectedCamp.lineCount} lines split by last name</p>
+            {selectedBlock ? (
+              <p>{selectedBlock} lines are shown below. Pick the camp line your check-in table is handling.</p>
+            ) : campFilter ? (
+              <p>{campLabel(campFilter)} lines split by last name.</p>
             ) : (
-              <p>Select a camp above to show the automatic A-Z line buttons.</p>
+              <p>Select a block session or choose a camp to show automatic A-Z line buttons.</p>
             )}
           </div>
 
-          {selectedCamp && (
-            <div className="checkin-line-buttons">
+          {lineGroups.length > 0 ? (
+            <div className="block-line-groups">
               <button
-                className={!selectedLineId ? "line-button active" : "line-button"}
-                onClick={() => setSelectedLineId("")}
+                className={!selectedLineKey ? "line-button active" : "line-button"}
+                onClick={clearLineFilter}
               >
-                All Lines
+                {selectedBlock ? `${selectedBlock}: All Lines` : "All Lines"}
               </button>
 
-              {lineRanges.map((range) => (
-                <button
-                  key={range.id}
-                  className={selectedLineId === range.id ? "line-button active" : "line-button"}
-                  onClick={() => setSelectedLineId(range.id)}
-                >
-                  Line {range.lineNumber}: {range.label}
-                  <span>{range.count}</span>
-                </button>
+              {lineGroups.map((group) => (
+                <div className="line-camp-group" key={group.camp.value}>
+                  <strong>{group.camp.label}</strong>
+                  <div className="checkin-line-buttons">
+                    {group.ranges.map((range) => {
+                      const key = `${group.camp.value}::${range.id}`;
+                      return (
+                        <button
+                          key={key}
+                          className={selectedLineKey === key ? "line-button active" : "line-button"}
+                          onClick={() => selectLine(group.camp.value, range.id)}
+                        >
+                          Line {range.lineNumber}: {range.label}
+                          <span>{range.count}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
             </div>
-          )}
+          ) : null}
         </div>
 
         <input
