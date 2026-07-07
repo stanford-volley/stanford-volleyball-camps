@@ -13,39 +13,39 @@ const tabs = ["Dashboard", "Check-In", "Campers", "Teams", "Attendance", "Report
 
 const BLOCK_SESSION_TEMPLATES = {
   "Block 1": [
-    { day: 1, period: "AM" },
-    { day: 1, period: "PM" },
-    { day: 2, period: "AM" },
-    { day: 2, period: "PM" },
+    { day: 1, period: "AM", date: "2026-07-08" },
+    { day: 1, period: "PM", date: "2026-07-08" },
+    { day: 2, period: "AM", date: "2026-07-09" },
+    { day: 2, period: "PM", date: "2026-07-09" },
   ],
   "Block 2": [
-    { day: 1, period: "AM" },
-    { day: 1, period: "PM" },
-    { day: 2, period: "AM" },
-    { day: 2, period: "PM" },
-    { day: 3, period: "AM" },
-    { day: 3, period: "PM" },
+    { day: 1, period: "AM", date: "2026-07-10" },
+    { day: 1, period: "PM", date: "2026-07-10" },
+    { day: 2, period: "AM", date: "2026-07-11" },
+    { day: 2, period: "PM", date: "2026-07-11" },
+    { day: 3, period: "AM", date: "2026-07-12" },
+    { day: 3, period: "PM", date: "2026-07-12" },
   ],
   "Block 3": [
-    { day: 1, period: "AM" },
-    { day: 1, period: "PM" },
-    { day: 2, period: "AM" },
-    { day: 2, period: "PM" },
-    { day: 3, period: "AM" },
-    { day: 3, period: "PM" },
-    { day: 4, period: "AM" },
-    { day: 4, period: "PM" },
+    { day: 1, period: "AM", date: "2026-07-13" },
+    { day: 1, period: "PM", date: "2026-07-13" },
+    { day: 2, period: "AM", date: "2026-07-14" },
+    { day: 2, period: "PM", date: "2026-07-14" },
+    { day: 3, period: "AM", date: "2026-07-15" },
+    { day: 3, period: "PM", date: "2026-07-15" },
+    { day: 4, period: "AM", date: "2026-07-16" },
+    { day: 4, period: "PM", date: "2026-07-16" },
   ],
   "Block 4": [
-    { day: 1, period: "PM" },
-    { day: 1, period: "EVE" },
-    { day: 2, period: "AM" },
-    { day: 2, period: "PM" },
-    { day: 2, period: "EVE" },
-    { day: 3, period: "AM" },
-    { day: 3, period: "PM" },
-    { day: 3, period: "EVE" },
-    { day: 4, period: "AM" },
+    { day: 1, period: "PM", date: "2026-07-17" },
+    { day: 1, period: "EVE", date: "2026-07-17" },
+    { day: 2, period: "AM", date: "2026-07-18" },
+    { day: 2, period: "PM", date: "2026-07-18" },
+    { day: 2, period: "EVE", date: "2026-07-18" },
+    { day: 3, period: "AM", date: "2026-07-19" },
+    { day: 3, period: "PM", date: "2026-07-19" },
+    { day: 3, period: "EVE", date: "2026-07-19" },
+    { day: 4, period: "AM", date: "2026-07-20" },
   ],
 };
 
@@ -69,6 +69,18 @@ function makeCamperSourceKey(camper) {
 
 function quotePostgrestValue(value) {
   return `"${String(value).replaceAll('"', '\"')}"`;
+}
+
+function formatSessionDate(dateValue) {
+  if (!dateValue) return "";
+  const [year, month, day] = String(dateValue).split("-");
+  if (!year || !month || !day) return String(dateValue);
+  return `${Number(month)}/${Number(day)}/${year}`;
+}
+
+function sessionDisplayName(session) {
+  const dateLabel = formatSessionDate(session?.session_date);
+  return dateLabel ? `${dateLabel} - ${session.name}` : session?.name || "Camp Session";
 }
 
 export default function App() {
@@ -108,6 +120,52 @@ export default function App() {
     if (selectedSession) loadAttendance(selectedSession);
   }, [selectedSession]);
 
+  useEffect(() => {
+    if (!selectedSession) return;
+
+    const channel = supabase
+      .channel(`attendance-live-${selectedSession}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "attendance",
+          filter: `session_id=eq.${selectedSession}`,
+        },
+        (payload) => {
+          if (payload.eventType === "DELETE") {
+            const deletedCamperId = payload.old?.camper_id;
+            if (!deletedCamperId) return;
+
+            setAttendance((prev) => {
+              const next = { ...prev };
+              delete next[deletedCamperId];
+              return next;
+            });
+
+            return;
+          }
+
+          const row = payload.new;
+          if (!row?.camper_id) return;
+
+          setAttendance((prev) => ({
+            ...prev,
+            [row.camper_id]: {
+              status: row.status,
+              notes: row.notes || "",
+            },
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedSession]);
+
   async function loadTeamDetails() {
     const { data, error } = await supabase.from("teams").select("*");
 
@@ -133,19 +191,28 @@ export default function App() {
     setCampers(data || []);
   }
 
-  async function loadSessions() {
+  async function loadSessions(options = {}) {
     const { data, error } = await supabase
       .from("attendance_sessions")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("session_date", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true });
 
     if (error) return alert(error.message);
 
-    setSessions(data || []);
+    const sessionRows = data || [];
+    setSessions(sessionRows);
 
-    if (data?.length && !selectedSession) {
-      setSelectedSession(data[0].id);
+    if (options.forceSelectFirst) {
+      setSelectedSession(sessionRows[0]?.id || "");
+      return sessionRows;
     }
+
+    if (sessionRows.length && !selectedSession) {
+      setSelectedSession(sessionRows[0].id);
+    }
+
+    return sessionRows;
   }
 
   async function loadAttendance(sessionId) {
@@ -205,7 +272,7 @@ export default function App() {
 
     const rows = template.map((session) => ({
       name: `${blockName} - Day ${session.day} ${session.period}`,
-      session_date: null,
+      session_date: session.date,
       session_time: session.period,
       source_key: `${normalizeSourceValue(blockName)}-day-${session.day}-${normalizeSourceValue(session.period)}`,
     }));
@@ -231,20 +298,39 @@ export default function App() {
       return;
     }
 
-    if (!window.confirm("Delete this attendance session?")) return;
+    const sessionToDelete = sessions.find((s) => s.id === sessionId);
+    const sessionName = sessionToDelete?.name || "this attendance session";
 
-    await supabase.from("attendance").delete().eq("session_id", sessionId);
+    if (
+      !window.confirm(
+        `Delete ${sessionName}? This removes only that session and its attendance records. Other sessions stay saved.`
+      )
+    ) {
+      return;
+    }
 
-    const { error } = await supabase
+    const { error: attendanceDeleteError } = await supabase
+      .from("attendance")
+      .delete()
+      .eq("session_id", sessionId);
+
+    if (attendanceDeleteError) return alert(attendanceDeleteError.message);
+
+    const { error: sessionDeleteError } = await supabase
       .from("attendance_sessions")
       .delete()
       .eq("id", sessionId);
 
-    if (error) return alert(error.message);
+    if (sessionDeleteError) return alert(sessionDeleteError.message);
 
-    setSelectedSession("");
     setAttendance({});
-    await loadSessions();
+
+    const remainingSessions = await loadSessions({ forceSelectFirst: true });
+    const nextSessionId = remainingSessions?.[0]?.id || "";
+
+    if (nextSessionId) {
+      await loadAttendance(nextSessionId);
+    }
   }
 
   async function markAttendance(camperId, status) {
@@ -738,6 +824,9 @@ export default function App() {
           <CheckIn
             campers={campers}
             teamDetails={teamDetails}
+            sessions={sessions}
+            selectedSession={selectedSession}
+            setSelectedSession={setSelectedSession}
             attendance={attendance}
             markAttendance={markAttendance}
             updateAttendanceNotes={updateAttendanceNotes}
