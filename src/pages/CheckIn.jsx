@@ -23,17 +23,32 @@ function normalizeGym(teamInfo) {
   return teamInfo?.gym || "-";
 }
 
-function isConfirmedAbsent(attendanceRow) {
-  return String(attendanceRow?.notes || "")
-    .toLowerCase()
-    .includes("confirmed absent");
+function confirmToken(sessionId) {
+  return `[confirmed_absent_session:${sessionId}]`;
 }
 
-function confirmedAbsentNotes(existingNotes) {
+function isConfirmedAbsentForSession(attendanceRow, sessionId) {
+  if (!sessionId) return false;
+  return String(attendanceRow?.notes || "").includes(confirmToken(sessionId));
+}
+
+function visibleNotes(notes) {
+  return String(notes || "")
+    .replace(/\s*\[confirmed_absent_session:[^\]]+\]/g, "")
+    .replace(/\s*Confirmed Absent\s*—?\s*/gi, "")
+    .trim();
+}
+
+function confirmedAbsentNotes(existingNotes, sessionId, sessionLabel) {
   const notes = String(existingNotes || "").trim();
-  if (!notes) return "Confirmed Absent";
-  if (notes.toLowerCase().includes("confirmed absent")) return notes;
-  return `Confirmed Absent — ${notes}`;
+  const token = confirmToken(sessionId);
+
+  if (notes.includes(token)) return notes;
+
+  const cleanNotes = visibleNotes(notes);
+  const confirmationText = `Confirmed Absent - ${sessionLabel}`;
+
+  return cleanNotes ? `${confirmationText} ${token} — ${cleanNotes}` : `${confirmationText} ${token}`;
 }
 
 export default function CheckIn({
@@ -49,12 +64,15 @@ export default function CheckIn({
   const [search, setSearch] = useState("");
   const [showConfirmed, setShowConfirmed] = useState(false);
 
+  const selectedSessionRow = sessions.find((session) => session.id === selectedSession);
+  const selectedSessionLabel = sessionDisplayName(selectedSessionRow);
+
   const absentCampers = useMemo(() => {
     const q = search.toLowerCase();
 
     return campers
       .filter((c) => attendance[c.id]?.status === "Absent")
-      .filter((c) => showConfirmed || !isConfirmedAbsent(attendance[c.id]))
+      .filter((c) => showConfirmed || !isConfirmedAbsentForSession(attendance[c.id], selectedSession))
       .filter((c) => {
         const info = teamDetails[c.main_team] || {};
         const text = `
@@ -77,18 +95,18 @@ export default function CheckIn({
           `${b.last_name || ""} ${b.first_name || ""}`
         )
       );
-  }, [campers, attendance, teamDetails, search, showConfirmed]);
+  }, [campers, attendance, teamDetails, search, showConfirmed, selectedSession]);
 
   const openAbsentCount = campers.filter(
     (c) =>
       attendance[c.id]?.status === "Absent" &&
-      !isConfirmedAbsent(attendance[c.id])
+      !isConfirmedAbsentForSession(attendance[c.id], selectedSession)
   ).length;
 
   const confirmedCount = campers.filter(
     (c) =>
       attendance[c.id]?.status === "Absent" &&
-      isConfirmedAbsent(attendance[c.id])
+      isConfirmedAbsentForSession(attendance[c.id], selectedSession)
   ).length;
 
   return (
@@ -155,7 +173,8 @@ export default function CheckIn({
           absentCampers.map((c) => {
             const info = teamDetails[c.main_team] || {};
             const row = attendance[c.id] || {};
-            const confirmed = isConfirmedAbsent(row);
+            const confirmed = isConfirmedAbsentForSession(row, selectedSession);
+            const cleanNote = visibleNotes(row.notes);
 
             return (
               <div className="checkin-absent-card" key={c.id}>
@@ -172,7 +191,7 @@ export default function CheckIn({
                   <span className={confirmed ? "confirmed-absent-pill" : "needs-followup-pill"}>
                     {confirmed ? "Confirmed Absent" : "Needs Follow-Up"}
                   </span>
-                  {row.notes && <p className="checkin-note">Notes: {row.notes}</p>}
+                  {cleanNote && <p className="checkin-note">Notes: {cleanNote}</p>}
                 </div>
 
                 <div className="checkin-absent-actions">
@@ -188,7 +207,7 @@ export default function CheckIn({
                     onClick={() =>
                       updateAttendanceNotes(
                         c.id,
-                        confirmedAbsentNotes(row.notes)
+                        confirmedAbsentNotes(row.notes, selectedSession, selectedSessionLabel)
                       )
                     }
                   >
