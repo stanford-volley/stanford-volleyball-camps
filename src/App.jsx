@@ -136,9 +136,11 @@ export default function App() {
     };
   }, []);
 
+  const activeAttendanceSessionId = getAttendanceSessionId(selectedSession);
+
   useEffect(() => {
     if (selectedSession) loadAttendance(selectedSession);
-  }, [selectedSession]);
+  }, [selectedSession, sessions]);
 
   useEffect(() => {
     const channel = supabase
@@ -172,20 +174,20 @@ export default function App() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedSession]);
+  }, [activeAttendanceSessionId]);
 
   useEffect(() => {
-    if (!selectedSession) return;
+    if (!activeAttendanceSessionId) return;
 
     const channel = supabase
-      .channel(`attendance-live-${selectedSession}`)
+      .channel(`attendance-live-${activeAttendanceSessionId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "attendance",
-          filter: `session_id=eq.${selectedSession}`,
+          filter: `session_id=eq.${activeAttendanceSessionId}`,
         },
         (payload) => {
           if (payload.eventType === "DELETE") {
@@ -218,7 +220,38 @@ export default function App() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedSession]);
+  }, [activeAttendanceSessionId]);
+
+
+  function getAttendanceSessionId(sessionId = selectedSession) {
+    if (!sessionId) return "";
+
+    const currentSession = sessions.find((session) => session.id === sessionId);
+    if (!currentSession) return sessionId;
+
+    const currentBlock = getSessionBlockName(currentSession);
+    const currentDay = getSessionDayNumber(currentSession);
+
+    if (!currentSession.session_date || !currentBlock || !currentDay) {
+      return sessionId;
+    }
+
+    const daySessions = sessions
+      .filter((session) => {
+        return (
+          session.session_date === currentSession.session_date &&
+          getSessionBlockName(session) === currentBlock &&
+          getSessionDayNumber(session) === currentDay
+        );
+      })
+      .sort((a, b) => {
+        const rankCompare = getSessionPeriodRank(a) - getSessionPeriodRank(b);
+        if (rankCompare !== 0) return rankCompare;
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      });
+
+    return daySessions[0]?.id || sessionId;
+  }
 
   async function loadTeamDetails() {
     const { data, error } = await supabase.from("teams").select("*");
@@ -325,22 +358,23 @@ export default function App() {
   }
 
   async function loadAttendance(sessionId) {
+    const attendanceSessionId = getAttendanceSessionId(sessionId);
+
+    if (!attendanceSessionId) {
+      setAttendance({});
+      return;
+    }
+
     const { data, error } = await supabase
       .from("attendance")
       .select("*")
-      .eq("session_id", sessionId);
+      .eq("session_id", attendanceSessionId);
 
     if (error) return alert(error.message);
 
-    let attendanceRows = data || [];
-
-    if (attendanceRows.length === 0) {
-      attendanceRows = await seedAttendanceFromPreviousSameDay(sessionId);
-    }
-
     const map = {};
 
-    attendanceRows.forEach((row) => {
+    (data || []).forEach((row) => {
       map[row.camper_id] = {
         status: row.status,
         notes: row.notes || "",
@@ -458,7 +492,9 @@ export default function App() {
   }
 
   async function markAttendance(camperId, status) {
-    if (!selectedSession) {
+    const attendanceSessionId = getAttendanceSessionId(selectedSession);
+
+    if (!attendanceSessionId) {
       alert("Create or select a session first.");
       return;
     }
@@ -468,7 +504,7 @@ export default function App() {
     const { error } = await supabase.from("attendance").upsert(
       {
         camper_id: camperId,
-        session_id: selectedSession,
+        session_id: attendanceSessionId,
         status,
         notes: existingNotes,
         updated_at: new Date().toISOString(),
@@ -488,7 +524,9 @@ export default function App() {
   }
 
   async function checkInEntireTeam(teamName) {
-    if (!selectedSession) {
+    const attendanceSessionId = getAttendanceSessionId(selectedSession);
+
+    if (!attendanceSessionId) {
       alert("Create or select a session first.");
       return;
     }
@@ -497,7 +535,7 @@ export default function App() {
 
     const updates = roster.map((c) => ({
       camper_id: c.id,
-      session_id: selectedSession,
+      session_id: attendanceSessionId,
       status: "Present",
       notes: attendance[c.id]?.notes || "",
       updated_at: new Date().toISOString(),
@@ -513,7 +551,9 @@ export default function App() {
   }
 
   async function checkOutEntireTeam(teamName) {
-    if (!selectedSession) {
+    const attendanceSessionId = getAttendanceSessionId(selectedSession);
+
+    if (!attendanceSessionId) {
       alert("Create or select a session first.");
       return;
     }
@@ -522,7 +562,7 @@ export default function App() {
 
     const updates = roster.map((c) => ({
       camper_id: c.id,
-      session_id: selectedSession,
+      session_id: attendanceSessionId,
       status: "Checked Out",
       notes: attendance[c.id]?.notes || "",
       updated_at: new Date().toISOString(),
@@ -550,14 +590,16 @@ export default function App() {
   }
 
   async function updateAttendanceNotes(camperId, notes) {
-    if (!selectedSession) return alert("Create or select a session first.");
+    const attendanceSessionId = getAttendanceSessionId(selectedSession);
+
+    if (!attendanceSessionId) return alert("Create or select a session first.");
 
     const status = attendance[camperId]?.status || "Present";
 
     const { error } = await supabase.from("attendance").upsert(
       {
         camper_id: camperId,
-        session_id: selectedSession,
+        session_id: attendanceSessionId,
         status,
         notes,
         updated_at: new Date().toISOString(),
