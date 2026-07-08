@@ -528,6 +528,29 @@ export default function App() {
     }));
   }
 
+  async function clearAttendance(camperId) {
+    const attendanceSessionId = getAttendanceSessionId(selectedSession);
+
+    if (!attendanceSessionId) {
+      alert("Create or select a session first.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("attendance")
+      .delete()
+      .eq("camper_id", camperId)
+      .eq("session_id", attendanceSessionId);
+
+    if (error) return alert(error.message);
+
+    setAttendance((prev) => {
+      const next = { ...prev };
+      delete next[camperId];
+      return next;
+    });
+  }
+
   async function checkInEntireTeam(teamName) {
     const attendanceSessionId = getAttendanceSessionId(selectedSession);
 
@@ -1000,6 +1023,7 @@ export default function App() {
             setSelectedSession={setSelectedSession}
             attendance={attendance}
             markAttendance={markAttendance}
+            clearAttendance={clearAttendance}
             updateAttendanceNotes={updateAttendanceNotes}
           />
         )}
@@ -1050,6 +1074,7 @@ export default function App() {
             attendanceCampers={attendanceCampers}
             attendance={attendance}
             markAttendance={markAttendance}
+            clearAttendance={clearAttendance}
             updateAttendanceNotes={updateAttendanceNotes}
           />
         )}
@@ -1186,6 +1211,13 @@ export default function App() {
                     onClick={() => markAttendance(selectedCamper.id, "Checked Out")}
                   >
                     Out
+                  </button>
+
+                  <button
+                    className="undo-attendance"
+                    onClick={() => clearAttendance(selectedCamper.id)}
+                  >
+                    Undo / Clear
                   </button>
                 </div>
               </div>
