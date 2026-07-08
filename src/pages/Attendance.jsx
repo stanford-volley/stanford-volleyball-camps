@@ -165,6 +165,7 @@ export default function Attendance({
   attendanceCampers,
   attendance,
   markAttendance,
+  clearAttendance,
   updateAttendanceNotes,
 }) {
   const [attendanceSearch, setAttendanceSearch] = useState("");
@@ -470,6 +471,14 @@ export default function Attendance({
                   onClick={() => markAttendance(c.id, "Checked Out")}
                 >
                   Out
+                </button>
+
+                <button
+                  className="undo-attendance"
+                  disabled={status === "Not Marked"}
+                  onClick={() => clearAttendance(c.id)}
+                >
+                  Undo
                 </button>
               </div>
 
