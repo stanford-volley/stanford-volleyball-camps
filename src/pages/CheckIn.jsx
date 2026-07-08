@@ -35,18 +35,18 @@ function isConfirmedAbsentForSession(attendanceRow, sessionId) {
 function visibleNotes(notes) {
   return String(notes || "")
     .replace(/\s*\[confirmed_absent_session:[^\]]+\]/g, "")
-    .replace(/\s*Confirmed Absent\s*—?\s*/gi, "")
+    .replace(/\s*Confirmed (Absent|Out)( - [^—]+)?\s*—?\s*/gi, "")
     .trim();
 }
 
-function confirmedAbsentNotes(existingNotes, sessionId, sessionLabel) {
+function confirmedAbsentNotes(existingNotes, sessionId, sessionLabel, status = "Absent") {
   const notes = String(existingNotes || "").trim();
   const token = confirmToken(sessionId);
 
   if (notes.includes(token)) return notes;
 
   const cleanNotes = visibleNotes(notes);
-  const confirmationText = `Confirmed Absent - ${sessionLabel}`;
+  const confirmationText = `Confirmed ${status === "Checked Out" ? "Out" : "Absent"} - ${sessionLabel}`;
 
   return cleanNotes ? `${confirmationText} ${token} — ${cleanNotes}` : `${confirmationText} ${token}`;
 }
@@ -71,7 +71,7 @@ export default function CheckIn({
     const q = search.toLowerCase();
 
     return campers
-      .filter((c) => attendance[c.id]?.status === "Absent")
+      .filter((c) => ["Absent", "Checked Out"].includes(attendance[c.id]?.status))
       .filter((c) => showConfirmed || !isConfirmedAbsentForSession(attendance[c.id], selectedSession))
       .filter((c) => {
         const info = teamDetails[c.main_team] || {};
@@ -99,13 +99,13 @@ export default function CheckIn({
 
   const openAbsentCount = campers.filter(
     (c) =>
-      attendance[c.id]?.status === "Absent" &&
+      ["Absent", "Checked Out"].includes(attendance[c.id]?.status) &&
       !isConfirmedAbsentForSession(attendance[c.id], selectedSession)
   ).length;
 
   const confirmedCount = campers.filter(
     (c) =>
-      attendance[c.id]?.status === "Absent" &&
+      ["Absent", "Checked Out"].includes(attendance[c.id]?.status) &&
       isConfirmedAbsentForSession(attendance[c.id], selectedSession)
   ).length;
 
@@ -114,8 +114,8 @@ export default function CheckIn({
       <section className="panel checkin-page-header">
         <h2>Check-In Follow-Up</h2>
         <p>
-          This page only shows campers marked <strong>Absent</strong>. Use it to
-          confirm true absences or quickly change a camper to Present.
+          This page shows campers marked <strong>Absent</strong> or <strong>Out</strong>. Use it to
+          reconfirm absence for this session or quickly change a camper to Present.
         </p>
 
         <div className="checkin-session-panel">
@@ -139,7 +139,7 @@ export default function CheckIn({
             <strong>{openAbsentCount}</strong>
           </div>
           <div>
-            <span>Confirmed Absent</span>
+            <span>Confirmed Follow-Up</span>
             <strong>{confirmedCount}</strong>
           </div>
         </div>
@@ -147,7 +147,7 @@ export default function CheckIn({
         <div className="checkin-tools">
           <input
             className="search"
-            placeholder="Search absent camper, team, court, coach..."
+            placeholder="Search absent/out camper, team, court, coach..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -158,7 +158,7 @@ export default function CheckIn({
               checked={showConfirmed}
               onChange={(e) => setShowConfirmed(e.target.checked)}
             />
-            Show confirmed absences
+            Show confirmed follow-ups
           </label>
         </div>
       </section>
@@ -167,7 +167,7 @@ export default function CheckIn({
         {absentCampers.length === 0 ? (
           <section className="panel">
             <h2>No absent campers need follow-up.</h2>
-            <p>Anyone marked Absent will appear here.</p>
+            <p>Anyone marked Absent or Out will appear here.</p>
           </section>
         ) : (
           absentCampers.map((c) => {
@@ -189,7 +189,9 @@ export default function CheckIn({
                     <strong>Coach:</strong> {info.coach_1 || info.coach || "—"}
                   </p>
                   <span className={confirmed ? "confirmed-absent-pill" : "needs-followup-pill"}>
-                    {confirmed ? "Confirmed Absent" : "Needs Follow-Up"}
+                    {confirmed
+                      ? `Confirmed ${row.status === "Checked Out" ? "Out" : "Absent"}`
+                      : `${row.status === "Checked Out" ? "Out" : "Absent"} - Needs Follow-Up`}
                   </span>
                   {cleanNote && <p className="checkin-note">Notes: {cleanNote}</p>}
                 </div>
@@ -207,11 +209,11 @@ export default function CheckIn({
                     onClick={() =>
                       updateAttendanceNotes(
                         c.id,
-                        confirmedAbsentNotes(row.notes, selectedSession, selectedSessionLabel)
+                        confirmedAbsentNotes(row.notes, selectedSession, selectedSessionLabel, row.status)
                       )
                     }
                   >
-                    Confirm Absent
+                    Confirm Absence
                   </button>
                 </div>
               </div>
