@@ -1477,3 +1477,19 @@ input {
 .line-camp-group .checkin-line-buttons {
   margin-top: 0;
 }
+
+.report-controls {
+  grid-template-columns: 1fr 1fr 1fr 170px 150px 220px !important;
+}
+
+@media (max-width: 1200px) {
+  .report-controls {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+@media (max-width: 800px) {
+  .report-controls {
+    grid-template-columns: 1fr !important;
+  }
+}
