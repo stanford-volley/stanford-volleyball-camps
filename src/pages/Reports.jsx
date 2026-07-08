@@ -67,12 +67,8 @@ function sortByLastName(a, b) {
   return String(a.first_name || "").localeCompare(String(b.first_name || ""));
 }
 
-function statusShort(status) {
-  if (status === "Present") return "P";
-  if (status === "Absent") return "A";
-  if (status === "Late") return "L";
-  if (status === "Checked Out") return "Out";
-  return "";
+function friendGroupLabel(camper) {
+  return String(camper?.friend_group || "").trim();
 }
 
 export default function Reports({
@@ -239,11 +235,11 @@ export default function Reports({
             rowIndex + 1,
             c.first_name || "",
             c.last_name || "",
-            statusShort(attendance[c.id]?.status),
+            friendGroupLabel(c),
           ]),
           styles: {
-            fontSize: 6.5,
-            cellPadding: 1.5,
+            fontSize: 7.6,
+            cellPadding: 1.8,
             lineColor: [0, 0, 0],
             lineWidth: 0.4,
             overflow: "ellipsize",
