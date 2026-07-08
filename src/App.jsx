@@ -232,14 +232,17 @@ export default function App() {
     const currentBlock = getSessionBlockName(currentSession);
     const currentDay = getSessionDayNumber(currentSession);
 
-    if (!currentSession.session_date || !currentBlock || !currentDay) {
+    // Daily attendance behavior:
+    // AM / PM / EVE sessions on the same Block + Day share one attendance record.
+    // Example: Block 1 - Day 1 AM and Block 1 - Day 1 PM both use the first
+    // Block 1 - Day 1 session as their attendance key. Block 1 - Day 2 starts fresh.
+    if (!currentBlock || !currentDay) {
       return sessionId;
     }
 
     const daySessions = sessions
       .filter((session) => {
         return (
-          session.session_date === currentSession.session_date &&
           getSessionBlockName(session) === currentBlock &&
           getSessionDayNumber(session) === currentDay
         );
@@ -247,6 +250,8 @@ export default function App() {
       .sort((a, b) => {
         const rankCompare = getSessionPeriodRank(a) - getSessionPeriodRank(b);
         if (rankCompare !== 0) return rankCompare;
+        const dateCompare = String(a.session_date || "").localeCompare(String(b.session_date || ""));
+        if (dateCompare !== 0) return dateCompare;
         return String(a.name || "").localeCompare(String(b.name || ""));
       });
 
