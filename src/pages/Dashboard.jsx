@@ -24,6 +24,17 @@ function normalizeGym(info) {
   return "Other";
 }
 
+
+function courtNumber(info) {
+  const match = String(info?.court || "").match(/(\d+)/);
+  return match ? Number(match[1]) : 999;
+}
+
+function courtLabel(info) {
+  const number = courtNumber(info);
+  return number === 999 ? String(info?.court || "") : `Court ${number}`;
+}
+
 function splitCoachNames(value) {
   if (!value) return [];
 
@@ -102,10 +113,18 @@ export default function Dashboard({
 
   const teamsByGym = GYMS.map((gym) => ({
     gym,
-    teams: filteredTeams.filter(([teamName]) => {
-      const info = teamDetails[teamName] || {};
-      return normalizeGym(info) === gym;
-    }),
+    teams: filteredTeams
+      .filter(([teamName]) => {
+        const info = teamDetails[teamName] || {};
+        return normalizeGym(info) === gym;
+      })
+      .sort(([teamA], [teamB]) => {
+        const infoA = teamDetails[teamA] || {};
+        const infoB = teamDetails[teamB] || {};
+        const courtCompare = courtNumber(infoA) - courtNumber(infoB);
+        if (courtCompare !== 0) return courtCompare;
+        return teamA.localeCompare(teamB);
+      }),
   }));
 
   return (
@@ -167,7 +186,8 @@ export default function Dashboard({
                   const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
                   const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
                   const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
-                  const missing = roster.length - present - absent - late;
+                  const checkedOut = roster.filter((c) => attendance[c.id]?.status === "Checked Out").length;
+                  const missing = roster.length - present - absent - late - checkedOut;
 
                   const coaches = [
                     ...splitCoachNames(info.coach_1 || info.coach),
@@ -180,7 +200,7 @@ export default function Dashboard({
                       <h3>{teamName}</h3>
 
                       <p><strong>{CAMP_NAMES[info.camp_id] || "Unassigned Camp"}</strong></p>
-                      <p><strong>Court:</strong> {info.court || "—"}</p>
+                      <p><strong>Court:</strong> {courtLabel(info) || "—"}</p>
 
                       <div className="coach-list">
                         <strong>Coaches:</strong>
@@ -195,6 +215,7 @@ export default function Dashboard({
                         <span>{present} Present</span>
                         <span>{late} Late</span>
                         <span>{absent} Absent</span>
+                        <span>{checkedOut} Out</span>
                         <span>{missing} Missing</span>
                         <span>{roster.length} Total</span>
                       </div>
