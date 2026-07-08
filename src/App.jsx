@@ -83,6 +83,26 @@ function sessionDisplayName(session) {
   return dateLabel ? `${dateLabel} - ${session.name}` : session?.name || "Camp Session";
 }
 
+
+function getSessionBlockName(session) {
+  const match = String(session?.name || "").match(/Block\s*\d+/i);
+  return match ? match[0].replace(/block/i, "Block") : "";
+}
+
+function getSessionPeriodRank(session) {
+  const time = String(session?.session_time || session?.name || "").toUpperCase();
+  if (time.includes("AM")) return 1;
+  if (time.includes("PM")) return 2;
+  if (time.includes("EVE")) return 3;
+  return 99;
+}
+
+function getSessionDayNumber(session) {
+  const match = String(session?.name || "").match(/Day\s*(\d+)/i);
+  return match ? Number(match[1]) : 0;
+}
+
+
 export default function App() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [selectedTeamFromDashboard, setSelectedTeamFromDashboard] = useState(null);
@@ -249,6 +269,61 @@ export default function App() {
     return sessionRows;
   }
 
+  async function seedAttendanceFromPreviousSameDay(sessionId) {
+    const currentSession = sessions.find((session) => session.id === sessionId);
+
+    if (!currentSession?.session_date) return [];
+
+    const currentBlock = getSessionBlockName(currentSession);
+    const currentDay = getSessionDayNumber(currentSession);
+    const currentRank = getSessionPeriodRank(currentSession);
+
+    const possiblePreviousSessions = sessions
+      .filter((session) => {
+        if (session.id === sessionId) return false;
+        if (session.session_date !== currentSession.session_date) return false;
+        if (currentBlock && getSessionBlockName(session) !== currentBlock) return false;
+        if (currentDay && getSessionDayNumber(session) !== currentDay) return false;
+        return getSessionPeriodRank(session) < currentRank;
+      })
+      .sort((a, b) => getSessionPeriodRank(b) - getSessionPeriodRank(a));
+
+    const previousSession = possiblePreviousSessions[0];
+    if (!previousSession?.id) return [];
+
+    const { data: previousAttendance, error: previousError } = await supabase
+      .from("attendance")
+      .select("camper_id, status, notes")
+      .eq("session_id", previousSession.id);
+
+    if (previousError) {
+      alert(previousError.message);
+      return [];
+    }
+
+    if (!previousAttendance?.length) return [];
+
+    const rowsToCopy = previousAttendance.map((row) => ({
+      camper_id: row.camper_id,
+      session_id: sessionId,
+      status: row.status,
+      notes: row.notes || "",
+      updated_at: new Date().toISOString(),
+    }));
+
+    const { data: copiedRows, error: copyError } = await supabase
+      .from("attendance")
+      .upsert(rowsToCopy, { onConflict: "camper_id,session_id" })
+      .select("*");
+
+    if (copyError) {
+      alert(copyError.message);
+      return [];
+    }
+
+    return copiedRows || [];
+  }
+
   async function loadAttendance(sessionId) {
     const { data, error } = await supabase
       .from("attendance")
@@ -257,9 +332,15 @@ export default function App() {
 
     if (error) return alert(error.message);
 
+    let attendanceRows = data || [];
+
+    if (attendanceRows.length === 0) {
+      attendanceRows = await seedAttendanceFromPreviousSameDay(sessionId);
+    }
+
     const map = {};
 
-    (data || []).forEach((row) => {
+    attendanceRows.forEach((row) => {
       map[row.camper_id] = {
         status: row.status,
         notes: row.notes || "",
@@ -277,19 +358,28 @@ export default function App() {
     const sessionTime = prompt("Time? Example: AM / PM / EVE. Leave blank if already in name.");
     const sourceKey = `manual-${normalizeSourceValue(name)}-${normalizeSourceValue(sessionDate)}`;
 
-    const { error } = await supabase.from("attendance_sessions").upsert(
-      {
-        name,
-        session_date: sessionDate || null,
-        session_time: sessionTime || null,
-        source_key: sourceKey,
-      },
-      { onConflict: "source_key" }
-    );
+    const { data, error } = await supabase
+      .from("attendance_sessions")
+      .upsert(
+        {
+          name,
+          session_date: sessionDate || null,
+          session_time: sessionTime || null,
+          source_key: sourceKey,
+        },
+        { onConflict: "source_key" }
+      )
+      .select("*")
+      .single();
 
     if (error) return alert(error.message);
 
     await loadSessions();
+
+    if (data?.id) {
+      setSelectedSession(data.id);
+      await loadAttendance(data.id);
+    }
   }
 
   async function createBlockSessions(blockName) {
