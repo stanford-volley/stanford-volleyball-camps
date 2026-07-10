@@ -18,6 +18,12 @@ const BLOCK_CAMP_MAP = {
   "Block 4": ["Camp 7", "Camp 8"],
 };
 
+function normalizeCampValue(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/camp\s*([1-8])/i);
+  return match ? `Camp ${match[1]}` : text;
+}
+
 function formatSessionDate(dateValue) {
   if (!dateValue) return "";
   const [year, month, day] = String(dateValue).split("-");
@@ -144,7 +150,7 @@ function camperIsInRange(camper, range) {
 
 function camperCampValue(camper, teamDetails) {
   const info = teamDetails[camper.main_team] || {};
-  return info.camp_id || "";
+  return normalizeCampValue(info.camp_id || camper.camp || "");
 }
 
 export default function Attendance({
@@ -176,20 +182,21 @@ export default function Attendance({
   const blockCampValues = BLOCK_CAMP_MAP[selectedBlock] || [];
 
   const effectiveCampValues = campFilter
-    ? [campFilter]
+    ? [normalizeCampValue(campFilter)]
     : blockCampValues.length
     ? blockCampValues
     : [];
 
   const visibleTeams = teams.filter(([team]) => {
     const info = teamDetails[team] || {};
-    if (campFilter) return info.camp_id === campFilter;
-    if (blockCampValues.length) return blockCampValues.includes(info.camp_id);
+    const campValue = normalizeCampValue(info.camp_id || "");
+    if (campFilter) return campValue === normalizeCampValue(campFilter);
+    if (blockCampValues.length) return blockCampValues.includes(campValue);
     return true;
   });
 
   const lineCampValues = campFilter
-    ? [campFilter]
+    ? [normalizeCampValue(campFilter)]
     : blockCampValues.length
     ? blockCampValues
     : [];
@@ -226,7 +233,7 @@ export default function Attendance({
 
     return attendanceCampers.filter((c) => {
       const info = teamDetails[c.main_team] || {};
-      const campValue = info.camp_id || "";
+      const campValue = camperCampValue(c, teamDetails);
 
       const matchesBlockOrCamp = effectiveCampValues.length
         ? effectiveCampValues.includes(campValue)
