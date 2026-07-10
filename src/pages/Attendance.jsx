@@ -150,7 +150,12 @@ function camperIsInRange(camper, range) {
 
 function camperCampValue(camper, teamDetails) {
   const info = teamDetails[camper.main_team] || {};
-  return normalizeCampValue(info.camp_id || camper.camp || "");
+
+  // The camper's Camp column is the source of truth. In some block workbooks,
+  // Coach + Court Assignment uses local labels like "Camp 1" / "Camp 2" even
+  // when the actual campers are CAMP 3 / CAMP 4. If we use teamInfo.camp_id
+  // first, Attendance will incorrectly filter those campers out.
+  return normalizeCampValue(camper.camp || info.camp_id || "");
 }
 
 export default function Attendance({
@@ -187,9 +192,13 @@ export default function Attendance({
     ? blockCampValues
     : [];
 
-  const visibleTeams = teams.filter(([team]) => {
+  const visibleTeams = teams.filter(([team, roster]) => {
     const info = teamDetails[team] || {};
-    const campValue = normalizeCampValue(info.camp_id || "");
+    const rosterCamp = (roster || [])
+      .map((camper) => normalizeCampValue(camper.camp))
+      .find(Boolean);
+    const campValue = rosterCamp || normalizeCampValue(info.camp_id || "");
+
     if (campFilter) return campValue === normalizeCampValue(campFilter);
     if (blockCampValues.length) return blockCampValues.includes(campValue);
     return true;
