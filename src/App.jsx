@@ -65,7 +65,21 @@ function normalizeCampValue(value) {
 
 function camperCampValue(camper, teamDetails) {
   const info = teamDetails[camper.main_team] || {};
-  return normalizeCampValue(info.camp_id || camper.camp || "");
+
+  // IMPORTANT: some block workbooks reuse the local labels "Camp 1" / "Camp 2"
+  // inside Coach + Court Assignment even when the camper registration value is
+  // actually CAMP 3 / CAMP 4, CAMP 5 / CAMP 6, etc.
+  // The camper.camp field is the most reliable full camp name from the workbook,
+  // so use it first. Fall back to team info only when camper.camp is blank.
+  return normalizeCampValue(camper.camp || info.camp_id || "");
+}
+
+function teamCampValue(teamName, campers, teamDetails) {
+  const teamRoster = campers.filter((camper) => camper.main_team === teamName);
+  const rosterCamp = teamRoster.map((camper) => normalizeCampValue(camper.camp)).find(Boolean);
+  const info = teamDetails[teamName] || {};
+
+  return rosterCamp || normalizeCampValue(info.camp_id || "");
 }
 
 function normalizeSourceValue(value) {
