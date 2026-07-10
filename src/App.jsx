@@ -49,6 +49,25 @@ const BLOCK_SESSION_TEMPLATES = {
   ],
 };
 
+
+const BLOCK_CAMP_MAP = {
+  "Block 1": ["Camp 1", "Camp 2"],
+  "Block 2": ["Camp 3", "Camp 4"],
+  "Block 3": ["Camp 5", "Camp 6"],
+  "Block 4": ["Camp 7", "Camp 8"],
+};
+
+function normalizeCampValue(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/camp\s*([1-8])/i);
+  return match ? `Camp ${match[1]}` : text;
+}
+
+function camperCampValue(camper, teamDetails) {
+  const info = teamDetails[camper.main_team] || {};
+  return normalizeCampValue(info.camp_id || camper.camp || "");
+}
+
 function normalizeSourceValue(value) {
   return String(value || "")
     .trim()
@@ -878,10 +897,20 @@ export default function App() {
   }, [campers]);
 
   const attendanceCampers = useMemo(() => {
-    return campers.filter((c) => {
-      const teamInfo = teamDetails[c.main_team] || {};
+    const selectedSessionObject = sessions.find((session) => session.id === selectedSession) || null;
+    const selectedBlock = getSessionBlockName(selectedSessionObject);
+    const blockCampValues = BLOCK_CAMP_MAP[selectedBlock] || [];
+    const normalizedCampFilter = normalizeCampValue(campFilter);
 
-      const matchesCamp = !campFilter || teamInfo.camp_id === campFilter;
+    return campers.filter((c) => {
+      const campValue = camperCampValue(c, teamDetails);
+
+      const matchesCamp = normalizedCampFilter
+        ? campValue === normalizedCampFilter
+        : blockCampValues.length
+        ? blockCampValues.includes(campValue)
+        : true;
+
       const matchesTeam = !teamFilter || c.main_team === teamFilter;
       const matchesStatus =
         !statusFilter ||
@@ -890,7 +919,7 @@ export default function App() {
 
       return matchesCamp && matchesTeam && matchesStatus;
     });
-  }, [campers, teamDetails, campFilter, teamFilter, statusFilter, attendance]);
+  }, [campers, teamDetails, campFilter, teamFilter, statusFilter, attendance, sessions, selectedSession]);
 
   const reportCampers = attendanceCampers;
 
