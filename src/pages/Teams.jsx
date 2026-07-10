@@ -12,8 +12,112 @@ const CAMP_OPTIONS = [
   { value: "Camp 8", label: "CAMP 8: Individual Skills Camp" },
 ];
 
+const styles = {
+  snapshotPanel: {
+    background: "#ffffff",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 18,
+    boxShadow: "0 2px 12px rgba(0,0,0,.08)",
+  },
+  snapshotTitle: {
+    margin: "0 0 4px",
+    fontSize: 24,
+  },
+  snapshotHelp: {
+    margin: "0 0 16px",
+    color: "#666",
+  },
+  campHeader: {
+    background: "#8c1515",
+    color: "white",
+    borderRadius: 10,
+    padding: "10px 14px",
+    margin: "14px 0 10px",
+    fontSize: 18,
+    fontWeight: 800,
+  },
+  countGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))",
+    gap: 8,
+  },
+  countButton: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+    width: "100%",
+    border: "1px solid #d8d8d8",
+    borderRadius: 10,
+    background: "#f8f8f8",
+    padding: "10px 12px",
+    cursor: "pointer",
+    textAlign: "left",
+    fontSize: 15,
+    fontWeight: 800,
+  },
+  countBadge: {
+    minWidth: 34,
+    borderRadius: 999,
+    padding: "4px 8px",
+    background: "#8c1515",
+    color: "white",
+    textAlign: "center",
+    fontSize: 14,
+  },
+  rank: {
+    color: "#777",
+    fontSize: 12,
+    marginRight: 6,
+  },
+};
+
+function normalizeCampValue(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/camp\s*([1-8])/i);
+  return match ? `Camp ${match[1]}` : text;
+}
+
 function campLabel(campId) {
-  return CAMP_OPTIONS.find((c) => c.value === campId)?.label || campId || "Unassigned Camp";
+  return (
+    CAMP_OPTIONS.find((camp) => camp.value === normalizeCampValue(campId))?.label ||
+    campId ||
+    "Unassigned Camp"
+  );
+}
+
+function rosterCampValue(roster, info) {
+  const camperCamp = (roster || [])
+    .map((camper) => normalizeCampValue(camper.camp))
+    .find(Boolean);
+
+  return camperCamp || normalizeCampValue(info?.camp_id || "");
+}
+
+function teamRank(info) {
+  const value = Number(info?.rank);
+  return Number.isFinite(value) && value > 0 ? value : 9999;
+}
+
+function sortByRank([teamA], [teamB], teamDetails) {
+  const rankA = teamRank(teamDetails[teamA]);
+  const rankB = teamRank(teamDetails[teamB]);
+
+  if (rankA !== rankB) return rankA - rankB;
+  return teamA.localeCompare(teamB);
+}
+
+function gymFromInfo(info) {
+  const gym = String(info?.gym || "").trim();
+  const court = String(info?.court || "").trim();
+
+  if (/maples/i.test(court)) return "Maples";
+  if (/apg/i.test(court)) return "APG";
+  if (/ford/i.test(court)) return "Ford";
+  if (/rec|burnham/i.test(court)) return "Rec";
+
+  return gym || "—";
 }
 
 export default function Teams({
@@ -37,17 +141,38 @@ export default function Teams({
     if (selectedTeamFromDashboard) setSelectedTeam(selectedTeamFromDashboard);
   }, [selectedTeamFromDashboard]);
 
-  const filteredTeams = useMemo(() => {
-    return teams.filter(([team, roster]) => {
+  const teamRecords = useMemo(() => {
+    return teams.map(([team, roster]) => {
       const info = teamDetails[team] || {};
-      const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
-      const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
+      const actualCamp = rosterCampValue(roster, info);
+
+      return {
+        team,
+        roster,
+        info,
+        actualCamp,
+        rank: teamRank(info),
+      };
+    });
+  }, [teams, teamDetails]);
+
+  const filteredRecords = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return teamRecords.filter(({ team, roster, info, actualCamp }) => {
+      const present = roster.filter(
+        (camper) => attendance[camper.id]?.status === "Present"
+      ).length;
+      const absent = roster.filter(
+        (camper) => attendance[camper.id]?.status === "Absent"
+      ).length;
 
       const text = `
         ${team}
-        ${info.camp_id || ""}
+        ${actualCamp}
+        ${campLabel(actualCamp)}
         ${info.court || ""}
-        ${info.gym || ""}
+        ${gymFromInfo(info)}
         ${info.coach_1 || ""}
         ${info.coach_2 || ""}
         ${info.coach_3 || ""}
@@ -55,23 +180,27 @@ export default function Teams({
         ${absent}
       `.toLowerCase();
 
-      return (
-        (!campFilter || info.camp_id === campFilter) &&
-        text.includes(search.toLowerCase())
-      );
+      return (!campFilter || actualCamp === campFilter) && text.includes(query);
     });
-  }, [teams, teamDetails, attendance, search, campFilter]);
+  }, [teamRecords, attendance, search, campFilter]);
 
-  const teamsByCamp = CAMP_OPTIONS.map((camp) => ({
-    ...camp,
-    teams: filteredTeams.filter(([team]) => {
-      const info = teamDetails[team] || {};
-      return info.camp_id === camp.value;
-    }),
-  })).filter((camp) => !campFilter || camp.value === campFilter);
+  const teamsByCamp = useMemo(() => {
+    return CAMP_OPTIONS.map((camp) => ({
+      ...camp,
+      records: filteredRecords
+        .filter((record) => record.actualCamp === camp.value)
+        .map((record) => [record.team, record.roster])
+        .sort((a, b) => sortByRank(a, b, teamDetails)),
+    })).filter((camp) => {
+      if (campFilter) return camp.value === campFilter;
+      return camp.records.length > 0;
+    });
+  }, [filteredRecords, campFilter, teamDetails]);
 
   if (selectedTeam) {
     const roster = teams.find(([team]) => team === selectedTeam)?.[1] || [];
+    const info = teamDetails[selectedTeam] || {};
+    const actualCamp = rosterCampValue(roster, info);
 
     return (
       <TeamDetails
@@ -79,7 +208,7 @@ export default function Teams({
         roster={roster}
         attendance={attendance}
         teams={teams}
-        teamInfo={teamDetails[selectedTeam]}
+        teamInfo={{ ...info, camp_id: actualCamp }}
         editCamper={editCamper}
         moveCamperTeam={moveCamperTeam}
         saveTeamInfo={saveTeamInfo}
@@ -101,10 +230,13 @@ export default function Teams({
           className="search"
           placeholder="Search teams, courts, coaches..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(event) => setSearch(event.target.value)}
         />
 
-        <select value={campFilter} onChange={(e) => setCampFilter(e.target.value)}>
+        <select
+          value={campFilter}
+          onChange={(event) => setCampFilter(event.target.value)}
+        >
           <option value="">All Camps</option>
           {CAMP_OPTIONS.map((camp) => (
             <option key={camp.value} value={camp.value}>
@@ -114,33 +246,95 @@ export default function Teams({
         </select>
       </section>
 
+      <section style={styles.snapshotPanel}>
+        <h2 style={styles.snapshotTitle}>Active Team Count</h2>
+        <p style={styles.snapshotHelp}>
+          Live camper totals. Teams are ordered by the Rank column from Coach +
+          Court Assignment.
+        </p>
+
+        {teamsByCamp.map((camp) => (
+          <div key={`snapshot-${camp.value}`}>
+            <div style={styles.campHeader}>{camp.label}</div>
+
+            <div style={styles.countGrid}>
+              {camp.records.map(([team, roster]) => {
+                const rank = teamRank(teamDetails[team]);
+
+                return (
+                  <button
+                    key={`count-${team}`}
+                    type="button"
+                    style={styles.countButton}
+                    onClick={() => setSelectedTeam(team)}
+                    title={`Open ${team}`}
+                  >
+                    <span>
+                      {rank < 9999 && <span style={styles.rank}>#{rank}</span>}
+                      {team}
+                    </span>
+                    <span style={styles.countBadge}>{roster.length}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </section>
+
       {teamsByCamp.map((camp) => (
         <section className="panel camp-team-section" key={camp.value}>
           <h2>{camp.label}</h2>
 
-          {camp.teams.length === 0 ? (
+          {camp.records.length === 0 ? (
             <p className="muted">No teams assigned to this camp.</p>
           ) : (
             <section className="team-grid">
-              {camp.teams.map(([team, roster]) => {
+              {camp.records.map(([team, roster]) => {
                 const info = teamDetails[team] || {};
-                const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
-                const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
-                const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
-                const checkedOut = roster.filter((c) => attendance[c.id]?.status === "Checked Out").length;
-                const missing = roster.length - present - absent - late - checkedOut;
+                const actualCamp = rosterCampValue(roster, info);
+                const present = roster.filter(
+                  (camper) => attendance[camper.id]?.status === "Present"
+                ).length;
+                const absent = roster.filter(
+                  (camper) => attendance[camper.id]?.status === "Absent"
+                ).length;
+                const late = roster.filter(
+                  (camper) => attendance[camper.id]?.status === "Late"
+                ).length;
+                const checkedOut = roster.filter(
+                  (camper) => attendance[camper.id]?.status === "Checked Out"
+                ).length;
+                const missing =
+                  roster.length - present - absent - late - checkedOut;
 
                 return (
                   <div className="team-card" key={team}>
                     <h2>{team}</h2>
 
-                    <p><strong>Camp:</strong> {campLabel(info.camp_id)}</p>
-                    <p><strong>Campers:</strong> {roster.length}</p>
-                    <p><strong>Gym:</strong> {info.gym || "—"}</p>
-                    <p><strong>Court:</strong> {info.court || "—"}</p>
-                    <p><strong>Coach 1:</strong> {info.coach_1 || info.coach || "—"}</p>
-                    <p><strong>Coach 2:</strong> {info.coach_2 || info.assistant_coach || "—"}</p>
-                    <p><strong>Coach 3:</strong> {info.coach_3 || "—"}</p>
+                    <p>
+                      <strong>Camp:</strong> {campLabel(actualCamp)}
+                    </p>
+                    <p>
+                      <strong>Campers:</strong> {roster.length}
+                    </p>
+                    <p>
+                      <strong>Gym:</strong> {gymFromInfo(info)}
+                    </p>
+                    <p>
+                      <strong>Court:</strong> {info.court || "—"}
+                    </p>
+                    <p>
+                      <strong>Coach 1:</strong>{" "}
+                      {info.coach_1 || info.coach || "—"}
+                    </p>
+                    <p>
+                      <strong>Coach 2:</strong>{" "}
+                      {info.coach_2 || info.assistant_coach || "—"}
+                    </p>
+                    <p>
+                      <strong>Coach 3:</strong> {info.coach_3 || "—"}
+                    </p>
 
                     <div className="mini-stats">
                       <span>{present} Present</span>
@@ -149,7 +343,10 @@ export default function Teams({
                       <span>{missing} Missing</span>
                     </div>
 
-                    <button className="primary-button" onClick={() => setSelectedTeam(team)}>
+                    <button
+                      className="primary-button"
+                      onClick={() => setSelectedTeam(team)}
+                    >
                       Open Team
                     </button>
                   </div>
