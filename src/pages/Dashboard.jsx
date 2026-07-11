@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 
 const GYMS = ["Maples", "APG", "Ford", "Rec"];
-
 const CAMP_NAMES = {
   "Camp 1": "Camp 1: Beginner Day Camp",
   "Camp 2": "Camp 2: Dig/Pass/Serve Day Camp",
@@ -12,243 +11,149 @@ const CAMP_NAMES = {
   "Camp 7": "Camp 7: Advanced Setter Camp",
   "Camp 8": "Camp 8: Individual Skills Camp",
 };
+const BLOCK_CAMPS = { 1: ["Camp 1", "Camp 2"], 2: ["Camp 3", "Camp 4"], 3: ["Camp 5", "Camp 6"], 4: ["Camp 7", "Camp 8"] };
 
+function normalizeCampValue(value) {
+  const match = String(value || "").match(/camp\s*([1-8])/i);
+  return match ? `Camp ${match[1]}` : "";
+}
+function campNumber(value) {
+  const match = normalizeCampValue(value).match(/(\d+)/);
+  return match ? Number(match[1]) : 0;
+}
+function mostCommonCamp(roster) {
+  const counts = new Map();
+  for (const camper of roster || []) {
+    const camp = normalizeCampValue(camper.camp);
+    if (!camp) continue;
+    counts.set(camp, (counts.get(camp) || 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || campNumber(a[0]) - campNumber(b[0]))[0]?.[0] || "";
+}
+function detectActiveBlock(teams) {
+  const counts = new Map();
+  for (const [, roster] of teams || []) {
+    for (const camper of roster || []) {
+      const number = campNumber(camper.camp);
+      if (!number) continue;
+      const block = Math.ceil(number / 2);
+      counts.set(block, (counts.get(block) || 0) + 1);
+    }
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 1;
+}
+function resolveTeamCamp(roster, info, activeBlock) {
+  const rosterCamp = mostCommonCamp(roster);
+  if (rosterCamp) return rosterCamp;
+  const localCamp = normalizeCampValue(info?.camp_id);
+  const localNumber = campNumber(localCamp);
+  const activeCamps = BLOCK_CAMPS[activeBlock] || [];
+  if (localNumber === 1) return activeCamps[0] || localCamp;
+  if (localNumber === 2) return activeCamps[1] || localCamp;
+  return localCamp;
+}
 function normalizeGym(info) {
   const text = `${info.gym || ""} ${info.court || ""}`.toLowerCase();
-
   if (text.includes("maples")) return "Maples";
   if (text.includes("apg")) return "APG";
   if (text.includes("ford")) return "Ford";
   if (text.includes("rec") || text.includes("burnham")) return "Rec";
-
   return "Other";
 }
-
-
 function courtNumber(info) {
   const match = String(info?.court || "").match(/(\d+)/);
   return match ? Number(match[1]) : 999;
 }
-
 function courtLabel(info) {
   const number = courtNumber(info);
   return number === 999 ? String(info?.court || "") : `Court ${number}`;
 }
-
 function splitCoachNames(value) {
   if (!value) return [];
-
-  return String(value)
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean);
+  return String(value).split(",").map((name) => name.trim()).filter(Boolean);
 }
 
-export default function Dashboard({
-  campers,
-  teams,
-  teamDetails,
-  attendance,
-  sessions,
-  presentCount,
-  absentCount,
-  lateCount,
-  importExcel,
-}) {
+export default function Dashboard({ campers, teams, teamDetails, attendance, sessions, presentCount, absentCount, lateCount, importExcel }) {
   const [dashboardSearch, setDashboardSearch] = useState("");
   const [dashboardStatus, setDashboardStatus] = useState("");
-
+  const activeBlock = useMemo(() => detectActiveBlock(teams), [teams]);
   const totalCampers = campers.length;
-  const checkedOutCount = campers.filter(
-    (c) => attendance[c.id]?.status === "Checked Out"
-  ).length;
-  const notMarked =
-    totalCampers - presentCount - absentCount - lateCount - checkedOutCount;
+  const checkedOutCount = campers.filter((c) => attendance[c.id]?.status === "Checked Out").length;
+  const notMarked = totalCampers - presentCount - absentCount - lateCount - checkedOutCount;
 
   function openTeam(teamName) {
     window.dispatchEvent(new CustomEvent("openTeam", { detail: teamName }));
   }
 
-  const filteredTeams = useMemo(() => {
-    return teams.filter(([teamName, roster]) => {
-      const info = teamDetails[teamName] || {};
-
-      const searchText = `
-        ${teamName}
-        ${info.camp_id || ""}
-        ${info.court || ""}
-        ${info.gym || ""}
-        ${info.lead_coach_of_gym || ""}
-        ${info.coach_1 || ""}
-        ${info.coach_2 || ""}
-        ${info.coach_3 || ""}
-      `.toLowerCase();
-
-      const present = roster.filter(
-        (c) => attendance[c.id]?.status === "Present"
-      ).length;
-      const absent = roster.filter(
-        (c) => attendance[c.id]?.status === "Absent"
-      ).length;
-      const late = roster.filter(
-        (c) => attendance[c.id]?.status === "Late"
-      ).length;
-      const checkedOut = roster.filter(
-        (c) => attendance[c.id]?.status === "Checked Out"
-      ).length;
-      const missing = roster.length - present - absent - late - checkedOut;
-
-      const matchesStatus =
-        !dashboardStatus ||
-        (dashboardStatus === "Present" && present > 0) ||
-        (dashboardStatus === "Absent" && absent > 0) ||
-        (dashboardStatus === "Late" && late > 0) ||
-        (dashboardStatus === "Missing" && missing > 0);
-
-      return (
-        searchText.includes(dashboardSearch.toLowerCase()) && matchesStatus
-      );
-    });
-  }, [teams, teamDetails, attendance, dashboardSearch, dashboardStatus]);
+  const filteredTeams = useMemo(() => teams.filter(([teamName, roster]) => {
+    const info = teamDetails[teamName] || {};
+    const actualCamp = resolveTeamCamp(roster, info, activeBlock);
+    const searchText = `${teamName} ${actualCamp} ${CAMP_NAMES[actualCamp] || ""} ${info.court || ""} ${info.gym || ""} ${info.lead_coach_of_gym || ""} ${info.coach_1 || ""} ${info.coach_2 || ""} ${info.coach_3 || ""}`.toLowerCase();
+    const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
+    const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
+    const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
+    const checkedOut = roster.filter((c) => attendance[c.id]?.status === "Checked Out").length;
+    const missing = roster.length - present - absent - late - checkedOut;
+    const matchesStatus = !dashboardStatus || (dashboardStatus === "Present" && present > 0) || (dashboardStatus === "Absent" && absent > 0) || (dashboardStatus === "Late" && late > 0) || (dashboardStatus === "Missing" && missing > 0);
+    return searchText.includes(dashboardSearch.toLowerCase()) && matchesStatus;
+  }), [teams, teamDetails, attendance, dashboardSearch, dashboardStatus, activeBlock]);
 
   const teamsByGym = GYMS.map((gym) => ({
     gym,
-    teams: filteredTeams
-      .filter(([teamName]) => {
-        const info = teamDetails[teamName] || {};
-        return normalizeGym(info) === gym;
-      })
-      .sort(([teamA], [teamB]) => {
-        const infoA = teamDetails[teamA] || {};
-        const infoB = teamDetails[teamB] || {};
-        const courtCompare = courtNumber(infoA) - courtNumber(infoB);
-        if (courtCompare !== 0) return courtCompare;
-        return teamA.localeCompare(teamB);
-      }),
+    teams: filteredTeams.filter(([teamName]) => normalizeGym(teamDetails[teamName] || {}) === gym).sort(([teamA], [teamB]) => {
+      const infoA = teamDetails[teamA] || {};
+      const infoB = teamDetails[teamB] || {};
+      const courtCompare = courtNumber(infoA) - courtNumber(infoB);
+      return courtCompare !== 0 ? courtCompare : teamA.localeCompare(teamB);
+    }),
   }));
 
-  return (
-    <>
-      <section className="command-hero">
-        <h1>Camp Command Center</h1>
-        <p>Live camp overview from the imported workbook.</p>
-      </section>
-
-      <section className="command-stats">
-        <div><span>Campers</span><strong>{totalCampers}</strong></div>
-        <div><span>Present</span><strong>{presentCount}</strong></div>
-        <div><span>Late</span><strong>{lateCount}</strong></div>
-        <div><span>Absent</span><strong>{absentCount}</strong></div>
-        <div><span>Not Marked</span><strong>{notMarked}</strong></div>
-      </section>
-
-      <section className="panel">
-        <h2>Import Camp Workbook</h2>
-        <p>Upload the latest Excel workbook. This replaces the current camp data.</p>
-        <input type="file" accept=".xlsx,.xls" onChange={importExcel} />
-      </section>
-
-      <section className="panel dashboard-controls">
-        <h2>Find Court / Team / Coach</h2>
-
-        <input
-          className="search"
-          placeholder="Search team, court, coach..."
-          value={dashboardSearch}
-          onChange={(e) => setDashboardSearch(e.target.value)}
-        />
-
-        <select
-          value={dashboardStatus}
-          onChange={(e) => setDashboardStatus(e.target.value)}
-        >
-          <option value="">All Statuses</option>
-          <option value="Present">Has Present Camper</option>
-          <option value="Absent">Has Absent Camper</option>
-          <option value="Late">Has Late Camper</option>
-          <option value="Missing">Has Missing Camper</option>
-        </select>
-      </section>
-
-      <section className="panel">
-        <h2>Courts / Teams / Coaches</h2>
-
-        {teamsByGym.map((group) => (
-          <div className="gym-section" key={group.gym}>
-            <h3>{group.gym}</h3>
-
-            {group.teams.length === 0 ? (
-              <p className="muted">No teams assigned.</p>
-            ) : (
-              <div className="dashboard-team-grid">
-                {group.teams.map(([teamName, roster]) => {
-                  const info = teamDetails[teamName] || {};
-                  const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
-                  const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
-                  const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
-                  const checkedOut = roster.filter((c) => attendance[c.id]?.status === "Checked Out").length;
-                  const missing = roster.length - present - absent - late - checkedOut;
-
-                  const coaches = [
-                    ...splitCoachNames(info.coach_1 || info.coach),
-                    ...splitCoachNames(info.coach_2 || info.assistant_coach),
-                    ...splitCoachNames(info.coach_3),
-                  ];
-
-                  return (
-                    <div className="dashboard-team-card" key={teamName}>
-                      <h3>{teamName}</h3>
-
-                      <p><strong>{CAMP_NAMES[info.camp_id] || "Unassigned Camp"}</strong></p>
-                      <p><strong>Court:</strong> {courtLabel(info) || "—"}</p>
-
-                      <div className="coach-list">
-                        <strong>Coaches:</strong>
-                        {coaches.length ? (
-                          coaches.map((coach) => <div key={coach}>{coach}</div>)
-                        ) : (
-                          <div>—</div>
-                        )}
-                      </div>
-
-                      <div className="attendance-summary">
-                        <span>{present} Present</span>
-                        <span>{late} Late</span>
-                        <span>{absent} Absent</span>
-                        <span>{checkedOut} Out</span>
-                        <span>{missing} Missing</span>
-                        <span>{roster.length} Total</span>
-                      </div>
-
-                      <button className="primary-button" onClick={() => openTeam(teamName)}>
-                        Open Team
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
-      </section>
-
-      <section className="panel">
-        <h2>Sessions</h2>
-
-        {sessions.length === 0 ? (
-          <p>No attendance sessions created yet.</p>
-        ) : (
-          <div className="session-list">
-            {sessions.map((session) => (
-              <div className="session-row" key={session.id}>
-                <strong>{session.name}</strong>
-                <span>{session.session_date || "No date"}</span>
-                <span>{session.session_time || "No time"}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-    </>
-  );
+  return <>
+    <section className="command-hero"><h1>Camp Command Center</h1><p>Live camp overview from the imported workbook.</p></section>
+    <section className="command-stats">
+      <div><span>Campers</span><strong>{totalCampers}</strong></div>
+      <div><span>Present</span><strong>{presentCount}</strong></div>
+      <div><span>Late</span><strong>{lateCount}</strong></div>
+      <div><span>Absent</span><strong>{absentCount}</strong></div>
+      <div><span>Not Marked</span><strong>{notMarked}</strong></div>
+    </section>
+    <section className="panel"><h2>Import Camp Workbook</h2><p>Upload the latest Excel workbook. This replaces the current camp data.</p><input type="file" accept=".xlsx,.xls" onChange={importExcel} /></section>
+    <section className="panel dashboard-controls">
+      <h2>Find Court / Team / Coach</h2>
+      <input className="search" placeholder="Search team, court, coach..." value={dashboardSearch} onChange={(e) => setDashboardSearch(e.target.value)} />
+      <select value={dashboardStatus} onChange={(e) => setDashboardStatus(e.target.value)}>
+        <option value="">All Statuses</option><option value="Present">Has Present Camper</option><option value="Absent">Has Absent Camper</option><option value="Late">Has Late Camper</option><option value="Missing">Has Missing Camper</option>
+      </select>
+    </section>
+    <section className="panel">
+      <h2>Courts / Teams / Coaches</h2>
+      {teamsByGym.map((group) => <div className="gym-section" key={group.gym}>
+        <h3>{group.gym}</h3>
+        {group.teams.length === 0 ? <p className="muted">No teams assigned.</p> : <div className="dashboard-team-grid">
+          {group.teams.map(([teamName, roster]) => {
+            const info = teamDetails[teamName] || {};
+            const actualCamp = resolveTeamCamp(roster, info, activeBlock);
+            const present = roster.filter((c) => attendance[c.id]?.status === "Present").length;
+            const absent = roster.filter((c) => attendance[c.id]?.status === "Absent").length;
+            const late = roster.filter((c) => attendance[c.id]?.status === "Late").length;
+            const checkedOut = roster.filter((c) => attendance[c.id]?.status === "Checked Out").length;
+            const missing = roster.length - present - absent - late - checkedOut;
+            const coaches = [...splitCoachNames(info.coach_1 || info.coach), ...splitCoachNames(info.coach_2 || info.assistant_coach), ...splitCoachNames(info.coach_3)];
+            return <div className="dashboard-team-card" key={teamName}>
+              <h3>{teamName}</h3>
+              <p><strong>{CAMP_NAMES[actualCamp] || "Unassigned Camp"}</strong></p>
+              <p><strong>Court:</strong> {courtLabel(info) || "—"}</p>
+              <div className="coach-list"><strong>Coaches:</strong>{coaches.length ? coaches.map((coach) => <div key={coach}>{coach}</div>) : <div>—</div>}</div>
+              <div className="attendance-summary"><span>{present} Present</span><span>{late} Late</span><span>{absent} Absent</span><span>{checkedOut} Out</span><span>{missing} Missing</span><span>{roster.length} Total</span></div>
+              <button className="primary-button" onClick={() => openTeam(teamName)}>Open Team</button>
+            </div>;
+          })}
+        </div>}
+      </div>)}
+    </section>
+    <section className="panel">
+      <h2>Sessions</h2>
+      {sessions.length === 0 ? <p>No attendance sessions created yet.</p> : <div className="session-list">{sessions.map((session) => <div className="session-row" key={session.id}><strong>{session.name}</strong><span>{session.session_date || "No date"}</span><span>{session.session_time || "No time"}</span></div>)}</div>}
+    </section>
+  </>;
 }
