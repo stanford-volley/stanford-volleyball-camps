@@ -736,6 +736,8 @@ export default function App() {
         return (
           first &&
           last &&
+          first !== "0" &&
+          last !== "0" &&
           first.toLowerCase() !== "first name" &&
           last.toLowerCase() !== "last name"
         );
@@ -787,10 +789,22 @@ export default function App() {
 
     const teamRows = XLSX.utils.sheet_to_json(teamSheet, { defval: "" });
 
-    const cleanedTeams = teamRows
+    const mappedTeams = teamRows
       .filter((r) => {
         const teamName = String(r["Team Name"] || "").trim();
-        return teamName && teamName.toLowerCase() !== "team name";
+        const campId = String(r["Camp #"] || r["Camp ID"] || "").trim();
+        const court = String(r["Court"] || "").trim();
+
+        // The Coach + Court Assignment sheet also contains helper rows for
+        // gym captains, dates, and session labels. Only actual team rows have
+        // a Camp 1-8 value and a court assignment.
+        return (
+          teamName &&
+          teamName !== "0" &&
+          teamName.toLowerCase() !== "team name" &&
+          /^camp\s*[1-8]$/i.test(campId) &&
+          court
+        );
       })
       .map((r) => {
         const court = String(r["Court"] || "").trim();
@@ -811,6 +825,12 @@ export default function App() {
           rank: Number(r["Rank"] || 0),
         };
       });
+
+    // Never send the same conflict key twice in a single upsert.
+    // Keep the final occurrence because it normally contains the latest edits.
+    const cleanedTeams = Array.from(
+      new Map(mappedTeams.map((team) => [team.name, team])).values()
+    );
 
     const incomingCamperKeys = campersForDatabase
       .map((camper) => camper.source_key)
@@ -910,7 +930,11 @@ export default function App() {
       }
     });
 
-    const cleanedSessions = Object.values(sessionMap);
+    const cleanedSessions = Array.from(
+      new Map(
+        Object.values(sessionMap).map((session) => [session.source_key, session])
+      ).values()
+    );
 
     if (cleanedSessions.length > 0) {
       const { error: sessionError } = await supabase
