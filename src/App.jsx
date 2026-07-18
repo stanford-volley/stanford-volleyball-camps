@@ -91,13 +91,47 @@ function normalizeSourceValue(value) {
 }
 
 function makeCamperSourceKey(camper) {
-  return [
-    normalizeSourceValue(camper.first_name),
-    normalizeSourceValue(camper.last_name),
-    normalizeSourceValue(camper.camp || camper.main_team),
-  ]
+  const confirmationNumber = normalizeSourceValue(camper.confirmation_number);
+  const firstName = normalizeSourceValue(camper.first_name);
+  const lastName = normalizeSourceValue(camper.last_name);
+  const camp = normalizeSourceValue(camper.camp || camper.main_team);
+
+  // Column AF in the current workbook is "Confirmation #".
+  // Confirmation numbers can be shared by siblings, so include the camper's
+  // name to keep every source_key unique and stable across re-imports.
+  if (confirmationNumber && confirmationNumber !== "0") {
+    return ["confirmation", confirmationNumber, firstName, lastName]
+      .filter(Boolean)
+      .join("__");
+  }
+
+  // Some rows in the uploaded Block 4 workbook have a calculated 0 in AF.
+  // Use a stable fallback rather than allowing every 0 row to collide.
+  return ["camper", firstName, lastName, camp]
     .filter(Boolean)
     .join("__");
+}
+
+function dedupeCampersBySourceKey(campers) {
+  const uniqueCampers = new Map();
+  const duplicateNames = [];
+
+  campers.forEach((camper) => {
+    if (!camper.source_key) return;
+
+    if (uniqueCampers.has(camper.source_key)) {
+      duplicateNames.push(`${camper.first_name} ${camper.last_name}`.trim());
+    }
+
+    // Keep the last copy because the later workbook row usually contains
+    // the final team/court edits.
+    uniqueCampers.set(camper.source_key, camper);
+  });
+
+  return {
+    campers: Array.from(uniqueCampers.values()),
+    duplicateNames,
+  };
 }
 
 function quotePostgrestValue(value) {
@@ -725,11 +759,31 @@ export default function App() {
         camper_rank: Number(r["CAMPER RANK"] || 0),
         jersey_number: String(r["Jersey #"] || "").trim(),
         court_position: String(r["Court Position"] || "").trim(),
+        // Column AF in Assign to Teams.
+        confirmation_number: String(r["Confirmation #"] || "").trim(),
       }))
       .map((camper) => ({
         ...camper,
         source_key: makeCamperSourceKey(camper),
       }));
+
+    const {
+      campers: dedupedCampers,
+      duplicateNames: duplicateCamperNames,
+    } = dedupeCampersBySourceKey(cleanedCampers);
+
+    if (duplicateCamperNames.length > 0) {
+      console.warn(
+        "Duplicate camper rows were consolidated before import:",
+        duplicateCamperNames
+      );
+    }
+
+    // confirmation_number is used only to build source_key. Do not send it
+    // to Supabase unless that column is later added to the campers table.
+    const campersForDatabase = dedupedCampers.map(
+      ({ confirmation_number, ...camper }) => camper
+    );
 
     const teamRows = XLSX.utils.sheet_to_json(teamSheet, { defval: "" });
 
@@ -758,7 +812,7 @@ export default function App() {
         };
       });
 
-    const incomingCamperKeys = cleanedCampers
+    const incomingCamperKeys = campersForDatabase
       .map((camper) => camper.source_key)
       .filter(Boolean);
 
@@ -791,7 +845,7 @@ export default function App() {
 
     const { error: camperError } = await supabase
       .from("campers")
-      .upsert(cleanedCampers, { onConflict: "source_key" });
+      .upsert(campersForDatabase, { onConflict: "source_key" });
 
     if (camperError) return alert(camperError.message);
 
@@ -866,7 +920,12 @@ export default function App() {
       if (sessionError) return alert(sessionError.message);
     }
 
-    alert(`Imported ${cleanedCampers.length} campers and ${cleanedTeams.length} teams.`);
+    alert(
+      `Imported ${campersForDatabase.length} campers and ${cleanedTeams.length} teams.` +
+        (duplicateCamperNames.length
+          ? ` Consolidated ${duplicateCamperNames.length} duplicate workbook row(s).`
+          : "")
+    );
 
     await loadCampers();
     await loadTeamDetails();
