@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 function formatSessionDate(dateValue) {
   if (!dateValue) return "";
@@ -10,6 +10,21 @@ function formatSessionDate(dateValue) {
 function sessionDisplayName(session) {
   const dateLabel = formatSessionDate(session?.session_date);
   return dateLabel ? `${dateLabel} - ${session.name}` : session?.name || "Camp Session";
+}
+
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getTodayAndTomorrowKeys() {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  return new Set([localDateKey(today), localDateKey(tomorrow)]);
 }
 
 function normalizeGym(teamInfo) {
@@ -64,7 +79,48 @@ export default function CheckIn({
   const [search, setSearch] = useState("");
   const [showConfirmed, setShowConfirmed] = useState(false);
 
-  const selectedSessionRow = sessions.find((session) => session.id === selectedSession);
+  const visibleSessions = useMemo(() => {
+    const allowedDates = getTodayAndTomorrowKeys();
+
+    return sessions
+      .filter((session) => allowedDates.has(String(session.session_date || "")))
+      .sort((a, b) => {
+        const dateCompare = String(a.session_date || "").localeCompare(
+          String(b.session_date || "")
+        );
+        if (dateCompare !== 0) return dateCompare;
+
+        const periodRank = (session) => {
+          const text = `${session.session_time || ""} ${session.name || ""}`.toUpperCase();
+          if (text.includes("AM")) return 1;
+          if (text.includes("PM")) return 2;
+          if (text.includes("EVE")) return 3;
+          return 99;
+        };
+
+        const periodCompare = periodRank(a) - periodRank(b);
+        if (periodCompare !== 0) return periodCompare;
+
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      });
+  }, [sessions]);
+
+  useEffect(() => {
+    if (!visibleSessions.length) return;
+
+    const selectedIsVisible = visibleSessions.some(
+      (session) => session.id === selectedSession
+    );
+
+    if (!selectedIsVisible) {
+      setSelectedSession(visibleSessions[0].id);
+    }
+  }, [visibleSessions, selectedSession, setSelectedSession]);
+
+  const selectedSessionRow =
+    visibleSessions.find((session) => session.id === selectedSession) ||
+    sessions.find((session) => session.id === selectedSession);
+
   const selectedSessionLabel = sessionDisplayName(selectedSessionRow);
 
   const absentCampers = useMemo(() => {
@@ -121,7 +177,7 @@ export default function CheckIn({
         <div className="checkin-session-panel">
           <strong>Session:</strong>
           <div className="checkin-session-buttons">
-            {sessions.map((session) => (
+            {visibleSessions.map((session) => (
               <button
                 key={session.id}
                 className={selectedSession === session.id ? "line-button active" : "line-button"}
@@ -131,6 +187,12 @@ export default function CheckIn({
               </button>
             ))}
           </div>
+
+          {visibleSessions.length === 0 && (
+            <p className="muted">
+              No sessions are scheduled for today or tomorrow.
+            </p>
+          )}
         </div>
 
         <div className="checkin-summary">
