@@ -19,12 +19,8 @@ function localDateKey(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-function getTodayAndTomorrowKeys() {
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-
-  return new Set([localDateKey(today), localDateKey(tomorrow)]);
+function getCurrentDayKey() {
+  return localDateKey(new Date());
 }
 
 function normalizeGym(teamInfo) {
@@ -80,10 +76,10 @@ export default function CheckIn({
   const [showConfirmed, setShowConfirmed] = useState(false);
 
   const visibleSessions = useMemo(() => {
-    const allowedDates = getTodayAndTomorrowKeys();
+    const todayKey = getCurrentDayKey();
 
     return sessions
-      .filter((session) => allowedDates.has(String(session.session_date || "")))
+      .filter((session) => String(session.session_date || "") === todayKey)
       .sort((a, b) => {
         const dateCompare = String(a.session_date || "").localeCompare(
           String(b.session_date || "")
@@ -190,7 +186,7 @@ export default function CheckIn({
 
           {visibleSessions.length === 0 && (
             <p className="muted">
-              No sessions are scheduled for today or tomorrow.
+              No sessions are scheduled for today.
             </p>
           )}
         </div>
