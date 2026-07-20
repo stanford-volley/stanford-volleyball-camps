@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const CAMP_OPTIONS = [
   { value: "Camp 1", label: "CAMP 1: Beginner Day Camp", lineCount: 2 },
@@ -34,6 +34,13 @@ function formatSessionDate(dateValue) {
 function sessionDisplayName(session) {
   const dateLabel = formatSessionDate(session?.session_date);
   return dateLabel ? `${dateLabel} - ${session.name}` : session?.name || "Camp Session";
+}
+
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function getSelectedSessionObject(sessions, selectedSession) {
@@ -182,7 +189,51 @@ export default function Attendance({
   const [attendanceSearch, setAttendanceSearch] = useState("");
   const [selectedLineKey, setSelectedLineKey] = useState("");
 
-  const selectedSessionObject = getSelectedSessionObject(sessions, selectedSession);
+  const currentDaySessions = useMemo(() => {
+    const todayKey = localDateKey();
+
+    return sessions
+      .filter((session) => String(session.session_date || "") === todayKey)
+      .sort((a, b) => {
+        const periodRank = (session) => {
+          const value = `${session.session_time || ""} ${session.name || ""}`.toUpperCase();
+          if (value.includes("AM")) return 1;
+          if (value.includes("PM")) return 2;
+          if (value.includes("EVE")) return 3;
+          return 99;
+        };
+
+        const rankCompare = periodRank(a) - periodRank(b);
+        if (rankCompare !== 0) return rankCompare;
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      });
+  }, [sessions]);
+
+  useEffect(() => {
+    if (!currentDaySessions.length) return;
+
+    const selectedIsCurrent = currentDaySessions.some(
+      (session) => session.id === selectedSession
+    );
+
+    if (!selectedIsCurrent) {
+      setSelectedSession(currentDaySessions[0].id);
+      setSelectedLineKey("");
+      setCampFilter("");
+      setTeamFilter("");
+    }
+  }, [
+    currentDaySessions,
+    selectedSession,
+    setSelectedSession,
+    setCampFilter,
+    setTeamFilter,
+  ]);
+
+  const selectedSessionObject =
+    currentDaySessions.find((session) => session.id === selectedSession) ||
+    getSelectedSessionObject(sessions, selectedSession);
+
   const selectedBlock = getBlockFromSession(selectedSessionObject);
   const blockCampValues = BLOCK_CAMP_MAP[selectedBlock] || [];
 
@@ -312,12 +363,16 @@ export default function Attendance({
             }}
           >
             <option value="">Select Session</option>
-            {sessions.map((s) => (
+            {currentDaySessions.map((s) => (
               <option key={s.id} value={s.id}>
                 {sessionDisplayName(s)}
               </option>
             ))}
           </select>
+
+          {currentDaySessions.length === 0 && (
+            <span className="muted">No sessions are scheduled for today.</span>
+          )}
 
           <button className="secondary-small-button" onClick={createSession}>
             + Session
